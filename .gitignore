@@ -1,0 +1,7 @@
+# Backend .gitignore
+__pycache__/
+*.pyc
+.env
+venv/
+build_url.txt
+pythonanywhere_wsgi.py
