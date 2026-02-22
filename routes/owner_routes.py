@@ -5,7 +5,7 @@ REST API endpoints for managing business owners.
 """
 
 from flask import Blueprint, request, jsonify
-from db import get_connection
+from db import get_connection, get_dict_cursor, get_last_id
 
 owner_bp = Blueprint("owner", __name__)
 
@@ -22,16 +22,10 @@ def add_owner():
         "phone": "string (optional)",
         "email": "string (optional)"
     }
-
-    Returns:
-        201: Owner created successfully.
-        400: Missing required fields.
-        500: Internal server error.
     """
     try:
         data = request.get_json()
 
-        # Validate required fields
         if not data:
             return jsonify({"success": False, "message": "Request body is required."}), 400
 
@@ -46,7 +40,6 @@ def add_owner():
                 "message": "Both 'shop_name' and 'owner_name' are required."
             }), 400
 
-        # Insert into database
         connection = get_connection()
         cursor = connection.cursor()
 
@@ -57,7 +50,7 @@ def add_owner():
         cursor.execute(query, (shop_name, owner_name, phone, email))
         connection.commit()
 
-        new_id = cursor.lastrowid
+        new_id = get_last_id(cursor, connection, "business_owner")
         cursor.close()
         connection.close()
 
@@ -67,15 +60,10 @@ def add_owner():
             "data": {"id": new_id}
         }), 201
 
-    except Error as e:
-        return jsonify({
-            "success": False,
-            "message": f"Database error: {str(e)}"
-        }), 500
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"Server error: {str(e)}"
+            "message": f"Database error: {str(e)}"
         }), 500
 
 
@@ -83,22 +71,21 @@ def add_owner():
 def get_owners():
     """
     Fetch all business owners.
-
-    Returns:
-        200: List of all owners.
-        500: Internal server error.
     """
     try:
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        cursor = get_dict_cursor(connection)
 
         cursor.execute("SELECT * FROM business_owner ORDER BY created_at DESC")
         owners = cursor.fetchall()
 
-        # Convert datetime objects to strings for JSON serialization
+        # Convert to regular dicts and format dates
+        result = []
         for owner in owners:
-            if owner.get("created_at"):
-                owner["created_at"] = owner["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+            row = dict(owner)
+            if row.get("created_at"):
+                row["created_at"] = row["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+            result.append(row)
 
         cursor.close()
         connection.close()
@@ -106,17 +93,12 @@ def get_owners():
         return jsonify({
             "success": True,
             "message": "Owners fetched successfully.",
-            "count": len(owners),
-            "data": owners
+            "count": len(result),
+            "data": result
         }), 200
 
-    except Error as e:
-        return jsonify({
-            "success": False,
-            "message": f"Database error: {str(e)}"
-        }), 500
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"Server error: {str(e)}"
+            "message": f"Database error: {str(e)}"
         }), 500

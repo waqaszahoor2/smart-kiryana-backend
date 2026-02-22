@@ -16,19 +16,18 @@ DB_MODE = Config.DB_MODE
 def get_connection():
     """
     Create and return a new database connection.
-    Uses MySQL locally, PostgreSQL on Render cloud.
     """
     if DB_MODE == "postgresql":
         import psycopg2
         try:
             connection = psycopg2.connect(Config.DATABASE_URL)
+            connection.autocommit = False
             return connection
         except Exception as e:
             print(f"[DB ERROR] Failed to connect to PostgreSQL: {e}")
             raise
     else:
         import mysql.connector
-        from mysql.connector import Error
         try:
             connection = mysql.connector.connect(
                 host=Config.DB_HOST,
@@ -37,38 +36,36 @@ def get_connection():
                 database=Config.DB_NAME,
             )
             return connection
-        except Error as e:
+        except Exception as e:
             print(f"[DB ERROR] Failed to connect to MySQL: {e}")
             raise
 
 
-def _table_exists(cursor, table_name):
-    """Check if a table exists in the database."""
+def get_dict_cursor(connection):
+    """
+    Return a cursor that returns rows as dictionaries.
+    Works with both MySQL and PostgreSQL.
+    """
     if DB_MODE == "postgresql":
-        cursor.execute("""
-            SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_schema = 'public' AND table_name = %s
-        """, (table_name,))
+        import psycopg2.extras
+        return connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     else:
-        cursor.execute(f"""
-            SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = '{Config.DB_NAME}'
-              AND TABLE_NAME = '{table_name}'
-        """)
-    return cursor.fetchone()[0] > 0
+        return connection.cursor(dictionary=True)
 
 
-def _get_table_columns(cursor, table_name):
-    """Get list of column names for a table."""
+def get_last_id(cursor, connection, table_name):
+    """
+    Get the last inserted ID. Works with both MySQL and PostgreSQL.
+    """
     if DB_MODE == "postgresql":
-        cursor.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = %s
-        """, (table_name,))
-        return [row[0] for row in cursor.fetchall()]
+        # PostgreSQL: use currval of the sequence
+        cur = connection.cursor()
+        cur.execute(f"SELECT currval(pg_get_serial_sequence('{table_name}', 'id'))")
+        result = cur.fetchone()[0]
+        cur.close()
+        return result
     else:
-        cursor.execute(f"SHOW COLUMNS FROM {table_name}")
-        return [row[0] for row in cursor.fetchall()]
+        return cursor.lastrowid
 
 
 def init_db():
@@ -120,24 +117,6 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-
-            # Check if products table has wrong schema
-            REQUIRED_COLUMNS = {"id", "owner_id", "product_name", "category",
-                                "price", "quantity", "unit", "is_available",
-                                "created_at", "updated_at"}
-
-            if _table_exists(cursor, "products"):
-                existing_cols = set(_get_table_columns(cursor, "products"))
-                missing_cols = REQUIRED_COLUMNS - existing_cols
-
-                if missing_cols:
-                    cursor.execute("SELECT COUNT(*) FROM products")
-                    row_count = cursor.fetchone()[0]
-                    if row_count == 0:
-                        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-                        cursor.execute("DROP TABLE products")
-                        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-                        print("[DB MIGRATION] Dropped empty products table with wrong schema.")
 
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS products (

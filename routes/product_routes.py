@@ -5,7 +5,7 @@ REST API endpoints for managing store products / inventory.
 """
 
 from flask import Blueprint, request, jsonify
-from db import get_connection
+from db import get_connection, get_dict_cursor, get_last_id
 
 product_bp = Blueprint("product", __name__)
 
@@ -19,17 +19,12 @@ def add_product():
     {
         "owner_id": int (required),
         "product_name": "string (required)",
-        "category": "string (optional, e.g. Grain, Sugar, Oil, Spice, Dairy, Snack, Beverage, Other)",
+        "category": "string (optional)",
         "price": float (required),
         "quantity": int (required),
-        "unit": "string (optional, e.g. kg, litre, packet, piece)",
-        "is_available": bool (optional, default true)
+        "unit": "string (optional)",
+        "is_available": bool (optional)
     }
-
-    Returns:
-        201: Product added successfully.
-        400: Missing required fields.
-        500: Internal server error.
     """
     try:
         data = request.get_json()
@@ -45,7 +40,6 @@ def add_product():
         unit = data.get("unit", "kg")
         is_available = data.get("is_available", True)
 
-        # Validate required fields
         if not owner_id:
             return jsonify({"success": False, "message": "'owner_id' is required."}), 400
         if not product_name:
@@ -65,7 +59,7 @@ def add_product():
         cursor.execute(query, (owner_id, product_name, category, float(price), int(quantity), unit, bool(is_available)))
         connection.commit()
 
-        new_id = cursor.lastrowid
+        new_id = get_last_id(cursor, connection, "products")
         cursor.close()
         connection.close()
 
@@ -77,29 +71,19 @@ def add_product():
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 
 @product_bp.route("/products", methods=["GET"])
 def get_products():
     """
     Fetch all products. Optionally filter by owner_id or category.
-
-    Query params:
-        owner_id (optional): Filter products by owner.
-        category (optional): Filter products by category.
-
-    Returns:
-        200: List of products with owner info.
-        500: Internal server error.
     """
     try:
         owner_id = request.args.get("owner_id")
         category = request.args.get("category")
 
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        cursor = get_dict_cursor(connection)
 
         query = """
             SELECT p.*, bo.shop_name, bo.owner_name
@@ -121,12 +105,18 @@ def get_products():
         cursor.execute(query, params)
         products = cursor.fetchall()
 
+        result = []
         for product in products:
-            if product.get("created_at"):
-                product["created_at"] = product["created_at"].strftime("%Y-%m-%d %H:%M:%S")
-            if product.get("updated_at"):
-                product["updated_at"] = product["updated_at"].strftime("%Y-%m-%d %H:%M:%S")
-            product["is_available"] = bool(product.get("is_available", True))
+            row = dict(product)
+            if row.get("created_at"):
+                row["created_at"] = row["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+            if row.get("updated_at"):
+                row["updated_at"] = row["updated_at"].strftime("%Y-%m-%d %H:%M:%S")
+            row["is_available"] = bool(row.get("is_available", True))
+            # Convert Decimal to float for JSON
+            if row.get("price") is not None:
+                row["price"] = float(row["price"])
+            result.append(row)
 
         cursor.close()
         connection.close()
@@ -134,35 +124,18 @@ def get_products():
         return jsonify({
             "success": True,
             "message": "Products fetched successfully.",
-            "count": len(products),
-            "data": products
+            "count": len(result),
+            "data": result
         }), 200
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 
 @product_bp.route("/product/<int:product_id>", methods=["PUT"])
 def update_product(product_id):
     """
     Update a product's price, quantity, or availability.
-
-    Expects JSON body (all optional):
-    {
-        "price": float,
-        "quantity": int,
-        "is_available": bool,
-        "product_name": "string",
-        "category": "string",
-        "unit": "string"
-    }
-
-    Returns:
-        200: Product updated.
-        404: Product not found.
-        500: Internal server error.
     """
     try:
         data = request.get_json()
@@ -170,7 +143,7 @@ def update_product(product_id):
             return jsonify({"success": False, "message": "Request body is required."}), 400
 
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        cursor = get_dict_cursor(connection)
 
         # Check product exists
         cursor.execute("SELECT * FROM products WHERE id = %s", (product_id,))
@@ -221,19 +194,12 @@ def update_product(product_id):
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 
 @product_bp.route("/product/<int:product_id>", methods=["DELETE"])
 def delete_product(product_id):
     """
     Delete a product from inventory.
-
-    Returns:
-        200: Product deleted.
-        404: Product not found.
-        500: Internal server error.
     """
     try:
         connection = get_connection()
@@ -258,21 +224,16 @@ def delete_product(product_id):
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 
 @product_bp.route("/products/summary", methods=["GET"])
 def products_summary():
     """
     Get inventory summary — total products, total value, out of stock count.
-
-    Returns:
-        200: Summary stats.
     """
     try:
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        cursor = get_dict_cursor(connection)
 
         cursor.execute("""
             SELECT
@@ -284,6 +245,7 @@ def products_summary():
             FROM products
         """)
         summary = cursor.fetchone()
+        summary = dict(summary)
 
         # Convert Decimal to float for JSON serialization
         summary["total_inventory_value"] = float(summary["total_inventory_value"])
@@ -298,5 +260,3 @@ def products_summary():
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Database error: {str(e)}"}), 500
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
