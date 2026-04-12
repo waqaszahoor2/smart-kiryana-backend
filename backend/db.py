@@ -6,16 +6,22 @@ and provides reusable helpers. Supports PostgreSQL (Vercel)
 and MySQL (local development).
 """
 
+import time
 from .config import Config
 
 # Determine database mode
 DB_MODE = Config.DB_MODE
+
+# Retry settings — helps when MySQL is still starting after a PC reboot
+MAX_RETRIES = 5
+RETRY_DELAY = 2  # seconds
 
 
 def get_connection():
     """
     Create and return a new database connection.
     Uses PostgreSQL when DATABASE_URL is set, otherwise MySQL.
+    Retries up to MAX_RETRIES times if the database is not yet ready.
     """
     if DB_MODE == "postgresql":
         try:
@@ -30,22 +36,29 @@ def get_connection():
             print(f"[DB ERROR] PostgreSQL connection failed: {e}")
             raise
     else:
-        try:
-            import mysql.connector
-            conn = mysql.connector.connect(
-                host=Config.DB_HOST,
-                user=Config.DB_USER,
-                password=Config.DB_PASSWORD,
-                database=Config.DB_NAME,
-            )
-            return conn
-        except ImportError:
-            print("[DB ERROR] mysql-connector-python is not installed. Required for MySQL.")
-            # If on Vercel, this might be expected if DATABASE_URL is missing but we want PostgreSQL
-            raise
-        except Exception as e:
-            print(f"[DB ERROR] MySQL connection failed: {e}")
-            raise
+        import mysql.connector
+
+        last_error = None
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                conn = mysql.connector.connect(
+                    host=Config.DB_HOST,
+                    user=Config.DB_USER,
+                    password=Config.DB_PASSWORD,
+                    database=Config.DB_NAME,
+                )
+                if attempt > 1:
+                    print(f"[DB] Connected to MySQL on attempt {attempt}.")
+                return conn
+            except mysql.connector.Error as e:
+                last_error = e
+                print(f"[DB WARNING] MySQL connection attempt {attempt}/{MAX_RETRIES} failed: {e}")
+                if attempt < MAX_RETRIES:
+                    print(f"[DB] Retrying in {RETRY_DELAY}s...")
+                    time.sleep(RETRY_DELAY)
+
+        print(f"[DB ERROR] MySQL connection failed after {MAX_RETRIES} attempts.")
+        raise last_error
 
 
 def get_dict_cursor(connection):
