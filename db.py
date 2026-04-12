@@ -79,6 +79,17 @@ def init_db():
 
         if DB_MODE == "postgresql":
             cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    password_hash VARCHAR(256) DEFAULT '',
+                    provider VARCHAR(20) DEFAULT 'email',
+                    provider_id VARCHAR(100) DEFAULT '',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS business_owner (
                     id SERIAL PRIMARY KEY,
                     shop_name VARCHAR(100) NOT NULL,
@@ -95,7 +106,8 @@ def init_db():
                     product_name VARCHAR(100) NOT NULL,
                     category VARCHAR(50) DEFAULT 'Other',
                     price DECIMAL(10, 2) NOT NULL,
-                    quantity INT NOT NULL DEFAULT 0,
+                    cost_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                    quantity DECIMAL(10, 2) NOT NULL DEFAULT 0,
                     unit VARCHAR(20) DEFAULT 'kg',
                     is_available BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -106,6 +118,17 @@ def init_db():
             """)
         else:
             cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    password_hash VARCHAR(256) DEFAULT '',
+                    provider VARCHAR(20) DEFAULT 'email',
+                    provider_id VARCHAR(100) DEFAULT '',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS business_owner (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     shop_name VARCHAR(100) NOT NULL,
@@ -122,7 +145,8 @@ def init_db():
                     product_name VARCHAR(100) NOT NULL,
                     category VARCHAR(50) DEFAULT 'Other',
                     price DECIMAL(10, 2) NOT NULL,
-                    quantity INT NOT NULL DEFAULT 0,
+                    cost_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                    quantity DECIMAL(10, 2) NOT NULL DEFAULT 0,
                     unit VARCHAR(20) DEFAULT 'kg',
                     is_available BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

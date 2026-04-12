@@ -36,6 +36,7 @@ def add_product():
         product_name = data.get("product_name")
         category = data.get("category", "Other")
         price = data.get("price")
+        cost_price = data.get("cost_price", 0)
         quantity = data.get("quantity")
         unit = data.get("unit", "kg")
         is_available = data.get("is_available", True)
@@ -53,10 +54,10 @@ def add_product():
         cursor = connection.cursor()
 
         query = """
-            INSERT INTO products (owner_id, product_name, category, price, quantity, unit, is_available)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO products (owner_id, product_name, category, price, cost_price, quantity, unit, is_available)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (owner_id, product_name, category, float(price), int(quantity), unit, bool(is_available)))
+        cursor.execute(query, (owner_id, product_name, category, float(price), float(cost_price), float(quantity), unit, bool(is_available)))
         connection.commit()
 
         new_id = get_last_id(cursor, connection, "products")
@@ -100,7 +101,7 @@ def get_products():
             query += " AND p.category = %s"
             params.append(category)
 
-        query += " ORDER BY p.created_at DESC"
+        query += " ORDER BY p.id ASC"
 
         cursor.execute(query, params)
         products = cursor.fetchall()
@@ -166,9 +167,13 @@ def update_product(product_id):
             fields.append("price = %s")
             values.append(float(data["price"]))
 
+        if "cost_price" in data:
+            fields.append("cost_price = %s")
+            values.append(float(data["cost_price"]))
+
         if "quantity" in data:
             fields.append("quantity = %s")
-            values.append(int(data["quantity"]))
+            values.append(float(data["quantity"]))
 
         if "is_available" in data:
             fields.append("is_available = %s")

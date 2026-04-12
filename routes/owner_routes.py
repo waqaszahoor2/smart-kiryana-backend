@@ -76,7 +76,7 @@ def get_owners():
         connection = get_connection()
         cursor = get_dict_cursor(connection)
 
-        cursor.execute("SELECT * FROM business_owner ORDER BY created_at DESC")
+        cursor.execute("SELECT * FROM business_owner ORDER BY id ASC")
         owners = cursor.fetchall()
 
         # Convert to regular dicts and format dates
