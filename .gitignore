@@ -1,7 +1,27 @@
-# Backend .gitignore
+# Python
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.egg-info/
+dist/
+build/
 venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel/
+
+# Node (frontend)
+node_modules/
 build_url.txt
+
+# Local dev files
 pythonanywhere_wsgi.py

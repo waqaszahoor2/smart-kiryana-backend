@@ -1,11 +1,7 @@
 """
 Smart Store - Main Application
 ==================================
-Entry point for the Smart Store Flask backend.
-Run this file to start the development server.
-
-Usage:
-    python app.py
+Flask application factory and entry point.
 """
 
 from flask import Flask, jsonify
@@ -26,14 +22,14 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Enable CORS for all routes (useful for frontend integration)
+    # Enable CORS for all routes (needed for frontend / mobile app)
     CORS(app)
 
-    # Register blueprints
+    # Register route blueprints
     app.register_blueprint(owner_bp)
     app.register_blueprint(product_bp)
 
-    # Root health-check route
+    # Health-check endpoint
     @app.route("/")
     def index():
         return jsonify({
@@ -41,18 +37,17 @@ def create_app():
             "message": "Smart Store Backend Running"
         }), 200
 
-    # Initialize database tables on startup
-    init_db()
+    # Initialize database tables on first request (serverless-safe)
+    with app.app_context():
+        init_db()
 
     return app
 
 
-# Module-level app for gunicorn (Render cloud): gunicorn app:app
+# Module-level app instance — used by Vercel (api/index.py) and local dev
 app = create_app()
 
 
 if __name__ == "__main__":
-    # Local development
-    print("\n[SERVER] Smart Store Backend is running on http://0.0.0.0:5000\n")
+    print("\n[SERVER] Smart Store Backend running on http://0.0.0.0:5000\n")
     app.run(host="0.0.0.0", port=5000, debug=True)
-

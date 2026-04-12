@@ -2,11 +2,10 @@
 Smart Store - Database Connection Handler
 ============================================
 Handles database connections, table initialization,
-and provides a reusable connection getter.
-Supports both MySQL (local) and PostgreSQL (Render cloud).
+and provides reusable helpers. Supports PostgreSQL (Vercel)
+and MySQL (local development).
 """
 
-import os
 from config import Config
 
 # Determine database mode
@@ -16,35 +15,35 @@ DB_MODE = Config.DB_MODE
 def get_connection():
     """
     Create and return a new database connection.
+    Uses PostgreSQL when DATABASE_URL is set, otherwise MySQL.
     """
     if DB_MODE == "postgresql":
         import psycopg2
         try:
-            connection = psycopg2.connect(Config.DATABASE_URL)
-            connection.autocommit = False
-            return connection
+            conn = psycopg2.connect(Config.DATABASE_URL)
+            conn.autocommit = False
+            return conn
         except Exception as e:
-            print(f"[DB ERROR] Failed to connect to PostgreSQL: {e}")
+            print(f"[DB ERROR] PostgreSQL connection failed: {e}")
             raise
     else:
         import mysql.connector
         try:
-            connection = mysql.connector.connect(
+            conn = mysql.connector.connect(
                 host=Config.DB_HOST,
                 user=Config.DB_USER,
                 password=Config.DB_PASSWORD,
                 database=Config.DB_NAME,
             )
-            return connection
+            return conn
         except Exception as e:
-            print(f"[DB ERROR] Failed to connect to MySQL: {e}")
+            print(f"[DB ERROR] MySQL connection failed: {e}")
             raise
 
 
 def get_dict_cursor(connection):
     """
-    Return a cursor that returns rows as dictionaries.
-    Works with both MySQL and PostgreSQL.
+    Return a cursor that yields rows as dictionaries.
     """
     if DB_MODE == "postgresql":
         import psycopg2.extras
@@ -55,12 +54,13 @@ def get_dict_cursor(connection):
 
 def get_last_id(cursor, connection, table_name):
     """
-    Get the last inserted ID. Works with both MySQL and PostgreSQL.
+    Get the last inserted row ID (works for both MySQL and PostgreSQL).
     """
     if DB_MODE == "postgresql":
-        # PostgreSQL: use currval of the sequence
         cur = connection.cursor()
-        cur.execute(f"SELECT currval(pg_get_serial_sequence('{table_name}', 'id'))")
+        cur.execute(
+            f"SELECT currval(pg_get_serial_sequence('{table_name}', 'id'))"
+        )
         result = cur.fetchone()[0]
         cur.close()
         return result
@@ -70,14 +70,14 @@ def get_last_id(cursor, connection, table_name):
 
 def init_db():
     """
-    Initialize the database by creating required tables if they don't exist.
+    Create required tables if they don't already exist.
+    Called once on application startup.
     """
     try:
         connection = get_connection()
         cursor = connection.cursor()
 
         if DB_MODE == "postgresql":
-            # PostgreSQL syntax
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS business_owner (
                     id SERIAL PRIMARY KEY,
@@ -88,7 +88,6 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS products (
                     id SERIAL PRIMARY KEY,
@@ -106,7 +105,6 @@ def init_db():
                 )
             """)
         else:
-            # MySQL syntax
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS business_owner (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -117,7 +115,6 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS products (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -129,7 +126,8 @@ def init_db():
                     unit VARCHAR(20) DEFAULT 'kg',
                     is_available BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        ON UPDATE CURRENT_TIMESTAMP,
                     FOREIGN KEY (owner_id) REFERENCES business_owner(id)
                         ON DELETE CASCADE
                 )
@@ -138,7 +136,7 @@ def init_db():
         connection.commit()
         cursor.close()
         connection.close()
-        print("[DB] Database initialized successfully (business_owner + products).")
+        print("[DB] Tables initialized successfully.")
     except Exception as e:
-        print(f"[DB ERROR] Failed to initialize database: {e}")
-        print("[DB WARNING] Server will start but database operations will fail.")
+        print(f"[DB ERROR] Init failed: {e}")
+        print("[DB WARNING] Server will start but DB operations may fail.")
