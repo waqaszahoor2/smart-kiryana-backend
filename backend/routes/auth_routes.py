@@ -6,23 +6,14 @@ Handles user registration, login, logout, and session management.
 
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from db import get_connection, get_dict_cursor
+from ..db import get_connection, get_dict_cursor
 
 auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/auth/register", methods=["POST"])
 def register():
-    """
-    Register a new user account.
-
-    Expects JSON body:
-    {
-        "name": "string (required)",
-        "email": "string (required)",
-        "password": "string (required, min 6 chars)"
-    }
-    """
+    """Register a new user account."""
     try:
         data = request.get_json()
         if not data:
@@ -68,7 +59,8 @@ def register():
 
         # Get the new user
         cursor.execute("SELECT id, name, email, provider FROM users WHERE email = %s", (email,))
-        user = dict(cursor.fetchone())
+        user_row = cursor.fetchone()
+        user = dict(user_row)
         cursor.close()
         connection.close()
 
@@ -89,15 +81,7 @@ def register():
 
 @auth_bp.route("/auth/login", methods=["POST"])
 def login():
-    """
-    Login with email and password.
-
-    Expects JSON body:
-    {
-        "email": "string (required)",
-        "password": "string (required)"
-    }
-    """
+    """Login with email and password."""
     try:
         data = request.get_json()
         if not data:
@@ -113,14 +97,14 @@ def login():
         cursor = get_dict_cursor(connection)
 
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
+        user_row = cursor.fetchone()
         cursor.close()
         connection.close()
 
-        if not user:
+        if not user_row:
             return jsonify({"success": False, "message": "No account found with this email."}), 404
 
-        user = dict(user)
+        user = dict(user_row)
 
         # Check password
         if not check_password_hash(user["password_hash"], password):
@@ -148,18 +132,7 @@ def login():
 
 @auth_bp.route("/auth/social", methods=["POST"])
 def social_login():
-    """
-    Login or register with a social provider (Google / GitHub).
-    The frontend sends the user info after OAuth.
-
-    Expects JSON body:
-    {
-        "name": "string",
-        "email": "string",
-        "provider": "google" | "github",
-        "provider_id": "string (optional)"
-    }
-    """
+    """Login or register with a social provider."""
     try:
         data = request.get_json()
         if not data:
@@ -178,10 +151,15 @@ def social_login():
 
         # Check if user exists
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
+        user_row = cursor.fetchone()
 
-        if user:
-            user = dict(user)
+        if user_row:
+            user = dict(user_row)
+            # Update provider if it was email but now social
+            if user["provider"] == "email":
+               cursor.execute("UPDATE users SET provider = %s, provider_id = %s WHERE id = %s", (provider, provider_id, user["id"]))
+               connection.commit()
+               user["provider"] = provider
         else:
             # Auto-register
             cursor.execute(

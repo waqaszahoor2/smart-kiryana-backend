@@ -6,7 +6,7 @@ and provides reusable helpers. Supports PostgreSQL (Vercel)
 and MySQL (local development).
 """
 
-from config import Config
+from .config import Config
 
 # Determine database mode
 DB_MODE = Config.DB_MODE
@@ -18,17 +18,20 @@ def get_connection():
     Uses PostgreSQL when DATABASE_URL is set, otherwise MySQL.
     """
     if DB_MODE == "postgresql":
-        import psycopg2
         try:
+            import psycopg2
             conn = psycopg2.connect(Config.DATABASE_URL)
             conn.autocommit = False
             return conn
+        except ImportError:
+            print("[DB ERROR] psycopg2-binary is not installed. Required for PostgreSQL.")
+            raise
         except Exception as e:
             print(f"[DB ERROR] PostgreSQL connection failed: {e}")
             raise
     else:
-        import mysql.connector
         try:
+            import mysql.connector
             conn = mysql.connector.connect(
                 host=Config.DB_HOST,
                 user=Config.DB_USER,
@@ -36,6 +39,10 @@ def get_connection():
                 database=Config.DB_NAME,
             )
             return conn
+        except ImportError:
+            print("[DB ERROR] mysql-connector-python is not installed. Required for MySQL.")
+            # If on Vercel, this might be expected if DATABASE_URL is missing but we want PostgreSQL
+            raise
         except Exception as e:
             print(f"[DB ERROR] MySQL connection failed: {e}")
             raise
@@ -92,11 +99,13 @@ def init_db():
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS business_owner (
                     id SERIAL PRIMARY KEY,
+                    user_id INT NOT NULL,
                     shop_name VARCHAR(100) NOT NULL,
                     owner_name VARCHAR(100) NOT NULL,
                     phone VARCHAR(20),
                     email VARCHAR(100),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """)
             cursor.execute("""
@@ -131,11 +140,13 @@ def init_db():
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS business_owner (
                     id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
                     shop_name VARCHAR(100) NOT NULL,
                     owner_name VARCHAR(100) NOT NULL,
                     phone VARCHAR(20),
                     email VARCHAR(100),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """)
             cursor.execute("""
@@ -157,6 +168,29 @@ def init_db():
                 )
             """)
 
+        # Migration: Ensure user_id exists in business_owner
+        try:
+            if DB_MODE == "postgresql":
+                cursor.execute("""
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                       WHERE table_name='business_owner' AND column_name='user_id') THEN
+                            ALTER TABLE business_owner ADD COLUMN user_id INT;
+                            -- Assign existing records to the first user if any, or just leave NULL if allowed
+                            -- For safety in this app, we'll try to find the first user
+                            ALTER TABLE business_owner ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+                        END IF;
+                    END $$;
+                """)
+            else:
+                cursor.execute("SHOW COLUMNS FROM business_owner LIKE 'user_id'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE business_owner ADD COLUMN user_id INT NOT NULL")
+                    cursor.execute("ALTER TABLE business_owner ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE")
+        except Exception as migration_error:
+            print(f"[DB MIGRATION WARNING] Could not add user_id column: {migration_error}")
+
         connection.commit()
         cursor.close()
         connection.close()
@@ -164,3 +198,5 @@ def init_db():
     except Exception as e:
         print(f"[DB ERROR] Init failed: {e}")
         print("[DB WARNING] Server will start but DB operations may fail.")
+
+

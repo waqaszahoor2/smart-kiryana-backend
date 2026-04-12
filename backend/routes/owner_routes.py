@@ -4,8 +4,8 @@ Smart Store - Owner Routes
 REST API endpoints for managing business owners.
 """
 
-from flask import Blueprint, request, jsonify
-from db import get_connection, get_dict_cursor, get_last_id
+from flask import Blueprint, request, jsonify, session
+from ..db import get_connection, get_dict_cursor, get_last_id
 
 owner_bp = Blueprint("owner", __name__)
 
@@ -13,19 +13,14 @@ owner_bp = Blueprint("owner", __name__)
 @owner_bp.route("/add-owner", methods=["POST"])
 def add_owner():
     """
-    Add a new business owner.
-
-    Expects JSON body:
-    {
-        "shop_name": "string (required)",
-        "owner_name": "string (required)",
-        "phone": "string (optional)",
-        "email": "string (optional)"
-    }
+    Add a new business owner for the logged-in user.
     """
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"success": False, "message": "Unauthorized. Please login."}), 401
+
     try:
         data = request.get_json()
-
         if not data:
             return jsonify({"success": False, "message": "Request body is required."}), 400
 
@@ -44,10 +39,10 @@ def add_owner():
         cursor = connection.cursor()
 
         query = """
-            INSERT INTO business_owner (shop_name, owner_name, phone, email)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO business_owner (user_id, shop_name, owner_name, phone, email)
+            VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (shop_name, owner_name, phone, email))
+        cursor.execute(query, (user_id, shop_name, owner_name, phone, email))
         connection.commit()
 
         new_id = get_last_id(cursor, connection, "business_owner")
@@ -70,13 +65,20 @@ def add_owner():
 @owner_bp.route("/owners", methods=["GET"])
 def get_owners():
     """
-    Fetch all business owners.
+    Fetch business owners for the logged-in user.
     """
+    user_id = session.get("user_id")
+    if not user_id:
+        # Fallback for mobile apps that might use a query param or header if session isn't working
+        user_id = request.args.get("user_id")
+        if not user_id:
+            return jsonify({"success": False, "message": "Unauthorized. Please login."}), 401
+
     try:
         connection = get_connection()
         cursor = get_dict_cursor(connection)
 
-        cursor.execute("SELECT * FROM business_owner ORDER BY id ASC")
+        cursor.execute("SELECT * FROM business_owner WHERE user_id = %s ORDER BY id ASC", (user_id,))
         owners = cursor.fetchall()
 
         # Convert to regular dicts and format dates

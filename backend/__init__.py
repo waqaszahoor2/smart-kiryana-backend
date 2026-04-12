@@ -1,0 +1,61 @@
+"""
+Smart Store - Backend Package
+==================================
+Flask application factory and package definitions.
+"""
+
+import os
+from flask import Flask, jsonify, send_from_directory
+from flask_cors import CORS
+from .config import Config
+from .db import init_db
+from .routes.owner_routes import owner_bp
+from .routes.product_routes import product_bp
+from .routes.auth_routes import auth_bp
+
+
+def create_app():
+    """
+    Application factory - creates and configures the Flask app.
+
+    Returns:
+        Flask: Configured Flask application instance.
+    """
+    # Static folder is at the project root
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    static_dir = os.path.join(root_dir, "static")
+    
+    app = Flask(__name__, static_folder=static_dir)
+    app.config.from_object(Config)
+
+    # Enable CORS for all routes (needed for frontend / mobile app)
+    CORS(app, supports_credentials=True)
+
+    # Register route blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(owner_bp)
+    app.register_blueprint(product_bp)
+
+    # Serve the login page directly at root
+    @app.route("/")
+    def index():
+        return send_from_directory(static_dir, "login.html")
+
+    # Serve the dashboard directly at /dashboard
+    @app.route("/dashboard")
+    def dashboard():
+        return send_from_directory(static_dir, "index.html")
+
+    # Health-check endpoint (API)
+    @app.route("/health")
+    def health():
+        return jsonify({
+            "success": True,
+            "message": "Smart Store Backend Running"
+        }), 200
+
+    # Initialize database tables
+    with app.app_context():
+        init_db()
+
+    return app

@@ -19,10 +19,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Display user info
-    const user = JSON.parse(storedUser);
-    document.getElementById("user-name").textContent = user.name || "User";
-    document.getElementById("user-email").textContent = user.email || "—";
-    document.getElementById("user-avatar").textContent = (user.name || "U").charAt(0).toUpperCase();
+    try {
+        const user = JSON.parse(storedUser);
+        if (document.getElementById("user-name")) document.getElementById("user-name").textContent = user.name || "User";
+        if (document.getElementById("user-email")) document.getElementById("user-email").textContent = user.email || "—";
+        if (document.getElementById("user-avatar")) document.getElementById("user-avatar").textContent = (user.name || "U").charAt(0).toUpperCase();
+    } catch (e) {
+        console.error("Failed to parse user data", e);
+        localStorage.removeItem("smartstore_user");
+        window.location.href = "/";
+        return;
+    }
 
     setupNavigation();
     setupMenuToggle();
@@ -63,6 +70,7 @@ async function handleLogout() {
     localStorage.removeItem("smartstore_user");
     window.location.href = "/";
 }
+
 
 // ─── Navigation ──────────────────────────────
 function setupNavigation() {
@@ -121,7 +129,7 @@ function updateClock() {
 async function checkServerStatus() {
     const badge = document.getElementById("server-status");
     try {
-        const res = await fetch(`${API}/health`);
+        const res = await fetch(`${API}/health`, { credentials: "include" });
         const data = await res.json();
         if (data.success) {
             badge.className = "status-badge online";
@@ -138,6 +146,7 @@ async function apiCall(endpoint, options = {}) {
     try {
         const res = await fetch(`${API}${endpoint}`, {
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             ...options,
         });
         return await res.json();

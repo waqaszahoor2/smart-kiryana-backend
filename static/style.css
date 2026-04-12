@@ -831,7 +831,14 @@ body {
 
 .form-row {
     display: flex;
-    gap: 14px;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
 }
 
 .modal-footer {
