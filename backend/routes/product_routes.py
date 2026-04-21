@@ -115,6 +115,10 @@ def get_products():
             row["is_available"] = bool(row.get("is_available", True))
             if row.get("price") is not None:
                 row["price"] = float(row["price"])
+            if row.get("cost_price") is not None:
+                row["cost_price"] = float(row["cost_price"])
+            if row.get("quantity") is not None:
+                row["quantity"] = float(row["quantity"])
             result.append(row)
 
         cursor.close()
@@ -257,6 +261,10 @@ def products_summary():
         summary = cursor.fetchone()
         summary = dict(summary)
         summary["total_inventory_value"] = float(summary["total_inventory_value"])
+        summary["out_of_stock"] = int(summary.get("out_of_stock") or 0)
+        summary["in_stock"] = int(summary.get("in_stock") or 0)
+        summary["total_products"] = int(summary.get("total_products") or 0)
+        summary["total_categories"] = int(summary.get("total_categories") or 0)
 
         cursor.close()
         connection.close()
