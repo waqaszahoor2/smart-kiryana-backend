@@ -15,7 +15,7 @@ def add_product():
     """
     Add a new product to the store inventory.
     """
-    user_id = session.get("user_id")
+    user_id = session.get("user_id") or request.headers.get("X-User-Id")
     if not user_id:
         return jsonify({"success": False, "message": "Unauthorized. Please login."}), 401
 
@@ -35,6 +35,9 @@ def add_product():
 
         if not owner_id:
             return jsonify({"success": False, "message": "'owner_id' is required."}), 400
+
+        if not product_name or not product_name.strip():
+            return jsonify({"success": False, "message": "'product_name' is required."}), 400
 
         connection = get_connection()
         cursor = connection.cursor()
@@ -72,7 +75,7 @@ def get_products():
     """
     Fetch products belonging to the logged-in user.
     """
-    user_id = session.get("user_id")
+    user_id = session.get("user_id") or request.headers.get("X-User-Id")
     if not user_id:
         user_id = request.args.get("user_id")
         if not user_id:
@@ -140,7 +143,7 @@ def update_product(product_id):
     """
     Update a product belonging to the user.
     """
-    user_id = session.get("user_id")
+    user_id = session.get("user_id") or request.headers.get("X-User-Id")
     if not user_id:
         return jsonify({"success": False, "message": "Unauthorized."}), 401
 
@@ -201,7 +204,7 @@ def delete_product(product_id):
     """
     Delete a product belonging to the user.
     """
-    user_id = session.get("user_id")
+    user_id = session.get("user_id") or request.headers.get("X-User-Id")
     if not user_id:
         return jsonify({"success": False, "message": "Unauthorized."}), 401
 
@@ -237,7 +240,7 @@ def products_summary():
     """
     Get inventory summary for the logged-in user.
     """
-    user_id = session.get("user_id")
+    user_id = session.get("user_id") or request.headers.get("X-User-Id")
     if not user_id:
         user_id = request.args.get("user_id")
         if not user_id:

@@ -15,7 +15,7 @@ def add_owner():
     """
     Add a new business owner for the logged-in user.
     """
-    user_id = session.get("user_id")
+    user_id = session.get("user_id") or request.headers.get("X-User-Id")
     if not user_id:
         return jsonify({"success": False, "message": "Unauthorized. Please login."}), 401
 
@@ -67,9 +67,9 @@ def get_owners():
     """
     Fetch business owners for the logged-in user.
     """
-    user_id = session.get("user_id")
+    user_id = session.get("user_id") or request.headers.get("X-User-Id")
     if not user_id:
-        # Fallback for mobile apps that might use a query param or header if session isn't working
+        # Fallback for mobile apps that might use a query param
         user_id = request.args.get("user_id")
         if not user_id:
             return jsonify({"success": False, "message": "Unauthorized. Please login."}), 401

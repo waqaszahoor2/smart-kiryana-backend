@@ -7,6 +7,8 @@
 
 import API_BASE_URL from "./config";
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 /**
  * Helper: fetch with timeout (10 seconds)
  */
@@ -14,9 +16,20 @@ const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
 
+    // Get user_id from AsyncStorage
+    let userId = null;
+    try {
+        userId = await AsyncStorage.getItem('user_id');
+        // Temporary fallback for testing if no login is implemented yet
+        if (!userId) userId = "1"; 
+    } catch (e) {
+        console.error("Error reading user_id", e);
+    }
+
     // Merge headers with ngrok-skip-browser-warning to bypass ngrok interstitial
     const headers = {
         "ngrok-skip-browser-warning": "true",
+        ...(userId ? { "X-User-Id": userId } : {}),
         ...(options.headers || {}),
     };
 
