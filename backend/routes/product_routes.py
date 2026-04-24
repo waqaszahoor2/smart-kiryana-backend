@@ -7,7 +7,7 @@ REST API endpoints for managing store products / inventory.
 from flask import Blueprint, request, jsonify, session
 import json
 from ..db import get_connection, get_dict_cursor, get_last_id
-from ..google_drive_sync import get_drive_service, get_or_create_folder, sync_products_to_drive
+from ..google_drive_sync import refresh_google_token, get_or_create_folder, sync_products_to_drive
 
 product_bp = Blueprint("product", __name__)
 
@@ -61,11 +61,34 @@ def sync_user_drive(user_id):
         connection.close()
 
         # Drive operations
-        service = get_drive_service(creds_dict)
-        if service:
-            folder_id = get_or_create_folder(service)
-            if folder_id:
-                sync_products_to_drive(service, result, folder_id)
+        access_token = creds_dict.get('token')
+        
+        # We can test the token by trying to get the folder
+        folder_id = get_or_create_folder(access_token)
+        
+        if not folder_id and creds_dict.get('refresh_token'):
+            # Token might be expired, try refreshing
+            new_token = refresh_google_token(
+                creds_dict.get('refresh_token'), 
+                creds_dict.get('client_id'), 
+                creds_dict.get('client_secret')
+            )
+            if new_token:
+                access_token = new_token
+                creds_dict['token'] = new_token
+                
+                # Update DB with new token
+                conn2 = get_connection()
+                cur2 = conn2.cursor()
+                cur2.execute("UPDATE users SET google_credentials = %s WHERE id = %s", (json.dumps(creds_dict), user_id))
+                conn2.commit()
+                cur2.close()
+                conn2.close()
+                
+                folder_id = get_or_create_folder(access_token)
+                
+        if folder_id:
+            sync_products_to_drive(access_token, result, folder_id)
                 
     except Exception as e:
         print(f"Error in sync_user_drive: {e}")

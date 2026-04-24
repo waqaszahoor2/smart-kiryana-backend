@@ -10,6 +10,7 @@
 }
 
 :root {
+    color-scheme: dark;
     --bg-primary: #0a0e1a;
     --bg-secondary: #111827;
     --bg-card: rgba(17, 24, 39, 0.7);
@@ -40,6 +41,7 @@
 }
 
 :root.light-mode {
+    color-scheme: light;
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
     --bg-card: rgba(255, 255, 255, 0.85);

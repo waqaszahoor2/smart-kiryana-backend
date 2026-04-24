@@ -10,7 +10,6 @@ from ..db import get_connection, get_dict_cursor
 import os
 import json
 import requests
-from google_auth_oauthlib.flow import Flow
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -230,22 +229,27 @@ def logout():
 
 @auth_bp.route("/auth/google/login", methods=["GET"])
 def google_login():
-    """Initiate Google OAuth Flow."""
+    """Initiate Google OAuth Flow via HTTP redirect."""
     try:
-        # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps
-        flow = Flow.from_client_secrets_file(
-            CLIENT_SECRETS_FILE,
-            scopes=SCOPES,
-            redirect_uri=request.host_url.rstrip('/') + "/auth/google/callback"
+        with open(CLIENT_SECRETS_FILE, "r") as f:
+            secrets = json.load(f)
+            web = secrets.get("web", {})
+            client_id = web.get("client_id")
+            
+        if not client_id:
+            return jsonify({"success": False, "message": "Invalid client secrets format"}), 500
+
+        redirect_uri = request.host_url.rstrip('/') + "/auth/google/callback"
+        auth_url = (
+            f"https://accounts.google.com/o/oauth2/v2/auth"
+            f"?client_id={client_id}"
+            f"&redirect_uri={redirect_uri}"
+            f"&response_type=code"
+            f"&scope={' '.join(SCOPES)}"
+            f"&access_type=offline"
+            f"&prompt=consent"
         )
-        # Generate URL for request to Google's OAuth 2.0 server.
-        authorization_url, state = flow.authorization_url(
-            access_type='offline',
-            include_granted_scopes='true',
-            prompt='consent'
-        )
-        session['state'] = state
-        return redirect(authorization_url)
+        return redirect(auth_url)
     except FileNotFoundError:
         return jsonify({"success": False, "message": "Google Client Secrets file not found. Please setup GCP and place client_secret.json in the project root."}), 500
     except Exception as e:
@@ -254,40 +258,55 @@ def google_login():
 
 @auth_bp.route("/auth/google/callback", methods=["GET"])
 def google_callback():
-    """Handle Google OAuth Callback."""
+    """Handle Google OAuth Callback via HTTP requests."""
     try:
-        state = session.get('state')
+        code = request.args.get("code")
+        if not code:
+            return jsonify({"success": False, "message": "No code provided"}), 400
+
+        with open(CLIENT_SECRETS_FILE, "r") as f:
+            secrets = json.load(f)
+            web = secrets.get("web", {})
+            client_id = web.get("client_id")
+            client_secret = web.get("client_secret")
+
+        redirect_uri = request.host_url.rstrip('/') + "/auth/google/callback"
         
-        flow = Flow.from_client_secrets_file(
-            CLIENT_SECRETS_FILE,
-            scopes=SCOPES,
-            state=state,
-            redirect_uri=request.host_url.rstrip('/') + "/auth/google/callback"
-        )
+        # Exchange code for tokens
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code"
+        }
+        token_res = requests.post(token_url, data=token_data)
         
-        # Use the authorization server's response to fetch the OAuth 2.0 tokens
-        flow.fetch_token(authorization_response=request.url)
-        credentials = flow.credentials
+        if token_res.status_code != 200:
+            return jsonify({"success": False, "message": "Failed to fetch tokens"}), 500
+            
+        token_json = token_res.json()
+        access_token = token_json.get("access_token")
+        refresh_token = token_json.get("refresh_token")
         
         # Get user info
         user_info_service = requests.get(
-            f"https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token={credentials.token}"
+            f"https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token={access_token}"
         )
         user_info = user_info_service.json()
         
-        email = user_info.get("email").lower()
-        name = user_info.get("name")
-        provider_id = user_info.get("id")
+        email = user_info.get("email", "").lower()
+        name = user_info.get("name", "")
+        provider_id = user_info.get("id", "")
         
         creds_dict = {
-            'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes
+            'token': access_token,
+            'refresh_token': refresh_token,
+            'client_id': client_id,
+            'client_secret': client_secret,
         }
-        creds_json = json.dumps(creds_dict)
+        creds_json_str = json.dumps(creds_dict)
         
         connection = get_connection()
         cursor = get_dict_cursor(connection)
@@ -299,17 +318,27 @@ def google_callback():
         if user_row:
             user = dict(user_row)
             # Update credentials
-            cursor.execute(
-                "UPDATE users SET provider = %s, provider_id = %s, google_credentials = %s WHERE id = %s", 
-                ("google", provider_id, creds_json, user["id"])
-            )
+            # Only update refresh_token if it was provided (Google sometimes only sends it on first login)
+            if refresh_token:
+                cursor.execute(
+                    "UPDATE users SET provider = %s, provider_id = %s, google_credentials = %s WHERE id = %s", 
+                    ("google", provider_id, creds_json_str, user["id"])
+                )
+            else:
+                # Need to read old creds and keep refresh token
+                old_creds = json.loads(user.get("google_credentials", "{}"))
+                creds_dict['refresh_token'] = old_creds.get('refresh_token')
+                cursor.execute(
+                    "UPDATE users SET provider = %s, provider_id = %s, google_credentials = %s WHERE id = %s", 
+                    ("google", provider_id, json.dumps(creds_dict), user["id"])
+                )
             connection.commit()
             user["provider"] = "google"
         else:
             # Auto-register
             cursor.execute(
                 "INSERT INTO users (name, email, password_hash, provider, provider_id, google_credentials) VALUES (%s, %s, %s, %s, %s, %s)",
-                (name, email, "", "google", provider_id, creds_json),
+                (name, email, "", "google", provider_id, creds_json_str),
             )
             connection.commit()
             cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
@@ -324,7 +353,6 @@ def google_callback():
         session["user_name"] = user["name"]
 
         # Redirect to frontend with a success flag
-        # You could also use a JWT or just set a cookie
         html_redirect = f\"\"\"
         <html>
             <body>
