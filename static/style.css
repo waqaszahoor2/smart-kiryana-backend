@@ -1944,6 +1944,24 @@ body {
         margin-left: 0 !important;
         padding-bottom: 80px !important;
     }
+    
+    /* Remove movement on touch/mobile for buttons, inputs, and cards */
+    .btn, .btn:hover, .btn:active, .btn:focus,
+    .btn-theme, .btn-theme:hover, .btn-theme:active, .btn-theme:focus,
+    .btn-theme-sidebar, .btn-theme-sidebar:hover, .btn-theme-sidebar:active,
+    .nav-item, .nav-item:hover, .nav-item:active, .nav-item.active .nav-icon,
+    input, input:focus, input:hover, input:active,
+    select, select:focus, select:hover, select:active,
+    textarea, textarea:focus, textarea:hover, textarea:active,
+    .form-group input:focus, .form-group select:focus,
+    .stat-card, .stat-card:hover,
+    .card, .card:hover,
+    .btn-logout, .btn-logout:hover,
+    .action-btn, .action-btn:hover,
+    .modal-close, .modal-close:hover,
+    .tab-btn, .tab-btn:hover, .tab-btn:active {
+        transform: none !important;
+    }
 }
 
 /* Bottom Navigation styling */

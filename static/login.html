@@ -671,24 +671,18 @@
 
         /* ---------- Touch Device Enhancements ---------- */
         @media (hover: none) and (pointer: coarse) {
+            .btn:hover, .btn:active, .btn-primary:active, .tab-btn:active, input:focus, .glass-card:hover {
+                transform: none !important;
+            }
             .btn:hover {
-                transform: none;
                 box-shadow: none;
             }
-
             .btn-primary:active {
                 background: var(--primary-dark);
-                transform: scale(0.98);
             }
-
             .btn-social:active {
                 background: rgba(255, 255, 255, 0.1);
             }
-
-            .tab-btn:active {
-                transform: scale(0.97);
-            }
-
             input, .btn, .tab-btn {
                 min-height: 44px;
             }
