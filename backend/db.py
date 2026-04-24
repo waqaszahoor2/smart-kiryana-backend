@@ -194,6 +194,11 @@ def init_db():
                             -- For safety in this app, we'll try to find the first user
                             ALTER TABLE business_owner ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
                         END IF;
+                        
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                       WHERE table_name='users' AND column_name='google_credentials') THEN
+                            ALTER TABLE users ADD COLUMN google_credentials TEXT;
+                        END IF;
                     END $$;
                 """)
             else:
@@ -201,10 +206,15 @@ def init_db():
                 if not cursor.fetchone():
                     cursor.execute("ALTER TABLE business_owner ADD COLUMN user_id INT NOT NULL")
                     cursor.execute("ALTER TABLE business_owner ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE")
+                
+                cursor.execute("SHOW COLUMNS FROM users LIKE 'google_credentials'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE users ADD COLUMN google_credentials TEXT")
         except Exception as migration_error:
-            print(f"[DB MIGRATION WARNING] Could not add user_id column: {migration_error}")
+            print(f"[DB MIGRATION WARNING] Could not add columns: {migration_error}")
 
         connection.commit()
+
         cursor.close()
         connection.close()
         print("[DB] Tables initialized successfully.")

@@ -39,6 +39,49 @@
     --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+:root.light-mode {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: rgba(255, 255, 255, 1);
+    --border-color: rgba(99, 102, 241, 0.2);
+    --border-glow: rgba(99, 102, 241, 0.4);
+
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+
+    --accent-primary: #4f46e5;
+    --accent-primary-glow: rgba(79, 70, 229, 0.4);
+    --accent-success: #059669;
+    --accent-success-glow: rgba(5, 150, 105, 0.3);
+    --accent-warning: #d97706;
+    --accent-warning-glow: rgba(217, 119, 6, 0.3);
+    --accent-danger: #dc2626;
+    --accent-danger-glow: rgba(220, 38, 38, 0.3);
+}
+
+:root.light-mode .sidebar {
+    background: rgba(248, 250, 252, 0.95);
+    border-right: 1px solid var(--border-color);
+}
+
+:root.light-mode .top-bar {
+    background: rgba(248, 250, 252, 0.8);
+}
+
+:root.light-mode .endpoint-item {
+    background: rgba(241, 245, 249, 0.8);
+}
+
+:root.light-mode .endpoint-item:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+:root.light-mode .bg-orb {
+    opacity: 0.2;
+}
+
 html {
     font-size: clamp(13px, 1vw + 10px, 16px);
     scroll-behavior: smooth;
