@@ -362,7 +362,7 @@ async function loadProducts() {
             (p) => `
         <tr>
             <td data-label="ID"><strong>#${p.id}</strong></td>
-            <td data-label="Product">${escapeHtml(p.product_name)}</td>
+            <td data-label="Product" class="product-cell-name">${escapeHtml(p.product_name)}</td>
             <td data-label="Category">${escapeHtml(p.category)}</td>
             <td data-label="Price">Rs ${p.price}</td>
             <td data-label="Cost">Rs ${p.cost_price || 0}</td>
