@@ -4,14 +4,12 @@ Smart Store - Authentication Routes
 Handles user registration, login, logout, and session management.
 """
 
-from flask import Blueprint, request, jsonify, session, redirect
+from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..db import get_connection, get_dict_cursor
-import os
-import json
-import requests
 
 auth_bp = Blueprint("auth", __name__)
+
 
 @auth_bp.route("/auth/register", methods=["POST"])
 def register():
@@ -215,4 +213,3 @@ def logout():
     """Log out the current user."""
     session.clear()
     return jsonify({"success": True, "message": "Logged out."}), 200
-

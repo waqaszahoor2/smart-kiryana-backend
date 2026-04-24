@@ -5,48 +5,9 @@ REST API endpoints for managing store products / inventory.
 """
 
 from flask import Blueprint, request, jsonify, session
-import json
 from ..db import get_connection, get_dict_cursor, get_last_id
-from ..local_storage_sync import sync_products_to_local_storage
 
 product_bp = Blueprint("product", __name__)
-
-def sync_user_drive(user_id):
-    """Helper to sync products to Google Drive."""
-    try:
-        connection = get_connection()
-        cursor = get_dict_cursor(connection)
-
-        # Get products
-        cursor.execute("""
-            SELECT p.*, bo.shop_name, bo.owner_name
-            FROM products p
-            INNER JOIN business_owner bo ON p.owner_id = bo.id
-            WHERE bo.user_id = %s
-        """, (user_id,))
-        products = cursor.fetchall()
-        
-        # Serialize properly for JSON (datetime to string, decimal to float)
-        result = []
-        for p in products:
-            row = dict(p)
-            if row.get("created_at"):
-                row["created_at"] = str(row["created_at"])
-            if row.get("updated_at"):
-                row["updated_at"] = str(row["updated_at"])
-            if row.get("price") is not None:
-                row["price"] = float(row["price"])
-            if row.get("cost_price") is not None:
-                row["cost_price"] = float(row["cost_price"])
-            if row.get("quantity") is not None:
-                row["quantity"] = float(row["quantity"])
-            result.append(row)
-
-        cursor.close()
-        connection.close()
-
-        # Sync to local storage
-        sync_products_to_local_storage(user_id, result)
 
 
 @product_bp.route("/add-product", methods=["POST"])
@@ -98,9 +59,6 @@ def add_product():
         new_id = get_last_id(cursor, connection, "products")
         cursor.close()
         connection.close()
-
-        # Sync to drive
-        sync_user_drive(user_id)
 
         return jsonify({
             "success": True,
@@ -235,9 +193,6 @@ def update_product(product_id):
         cursor.close()
         connection.close()
 
-        # Sync to drive
-        sync_user_drive(user_id)
-
         return jsonify({"success": True, "message": "Product updated successfully."}), 200
 
     except Exception as e:
@@ -273,9 +228,6 @@ def delete_product(product_id):
 
         cursor.close()
         connection.close()
-
-        # Sync to drive
-        sync_user_drive(user_id)
 
         return jsonify({"success": True, "message": "Product deleted successfully."}), 200
 
