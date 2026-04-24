@@ -25,3 +25,4 @@ build_url.txt
 
 # Local dev files
 pythonanywhere_wsgi.py
+smart store/
