@@ -105,13 +105,25 @@ function switchPage(page) {
 
     // Close mobile menu
     document.getElementById("sidebar").classList.remove("open");
+    const overlay = document.getElementById("sidebar-overlay");
+    if (overlay) overlay.classList.remove("show");
 }
 
 // ─── Mobile Menu ─────────────────────────────
 function setupMenuToggle() {
     document.getElementById("menu-toggle").addEventListener("click", () => {
         document.getElementById("sidebar").classList.toggle("open");
+        const overlay = document.getElementById("sidebar-overlay");
+        if (overlay) overlay.classList.toggle("show");
     });
+
+    const overlay = document.getElementById("sidebar-overlay");
+    if (overlay) {
+        overlay.addEventListener("click", () => {
+            document.getElementById("sidebar").classList.remove("open");
+            overlay.classList.remove("show");
+        });
+    }
 }
 
 // ─── Clock ───────────────────────────────────
