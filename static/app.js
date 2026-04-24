@@ -273,12 +273,12 @@ async function loadOwners() {
         .map(
             (o) => `
         <tr>
-            <td><strong>#${o.id}</strong></td>
-            <td>${escapeHtml(o.shop_name)}</td>
-            <td>${escapeHtml(o.owner_name)}</td>
-            <td>${escapeHtml(o.phone || "—")}</td>
-            <td>${escapeHtml(o.email || "—")}</td>
-            <td style="color: var(--text-muted); font-size: 0.82rem">${o.created_at}</td>
+            <td data-label="ID"><strong>#${o.id}</strong></td>
+            <td data-label="Shop Name">${escapeHtml(o.shop_name)}</td>
+            <td data-label="Owner Name">${escapeHtml(o.owner_name)}</td>
+            <td data-label="Phone">${escapeHtml(o.phone || "—")}</td>
+            <td data-label="Email">${escapeHtml(o.email || "—")}</td>
+            <td data-label="Created" style="color: var(--text-muted); font-size: 0.82rem">${o.created_at}</td>
         </tr>
     `
         )
@@ -299,20 +299,20 @@ async function loadProducts() {
         .map(
             (p) => `
         <tr>
-            <td><strong>#${p.id}</strong></td>
-            <td>${escapeHtml(p.product_name)}</td>
-            <td>${escapeHtml(p.category)}</td>
-            <td>Rs ${p.price}</td>
-            <td>Rs ${p.cost_price || 0}</td>
-            <td><span class="qty-highlight">${p.quantity}</span> ${escapeHtml(p.unit)}</td>
-            <td>${escapeHtml(p.unit)}</td>
-            <td>
+            <td data-label="ID"><strong>#${p.id}</strong></td>
+            <td data-label="Product">${escapeHtml(p.product_name)}</td>
+            <td data-label="Category">${escapeHtml(p.category)}</td>
+            <td data-label="Price">Rs ${p.price}</td>
+            <td data-label="Cost">Rs ${p.cost_price || 0}</td>
+            <td data-label="Available"><span class="qty-highlight">${p.quantity}</span> ${escapeHtml(p.unit)}</td>
+            <td data-label="Unit">${escapeHtml(p.unit)}</td>
+            <td data-label="Status">
                 <span class="status-pill ${p.is_available && p.quantity > 0 ? "in-stock" : "out-of-stock"}">
                     ${p.is_available && p.quantity > 0 ? "● In Stock" : "● Out of Stock"}
                 </span>
             </td>
-            <td>${escapeHtml(p.shop_name || "—")}</td>
-            <td>
+            <td data-label="Shop">${escapeHtml(p.shop_name || "—")}</td>
+            <td data-label="Actions">
                 <div class="action-btns">
                     <button class="btn btn-edit-sm btn-sm" onclick='openEditModal(${JSON.stringify(p).replace(/'/g, "&#39;")})'>
                         ✏️ Edit

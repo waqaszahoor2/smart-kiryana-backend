@@ -1332,23 +1332,61 @@ body {
         font-size: 0.7rem;
     }
 
-    /* Table scroll on tablet */
+    /* Table layout as Cards for mobile/tablet */
     .table-wrap {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        margin: 0 -18px;
-        padding: 0 18px;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
     }
 
-    .data-table {
-        min-width: 700px;
+    .data-table, .data-table thead, .data-table tbody, .data-table th, .data-table td, .data-table tr {
+        display: block;
+        min-width: 0;
     }
 
-    .data-table th,
+    .data-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    .data-table tr {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        margin-bottom: 15px;
+        background: var(--bg-card);
+        padding: 8px 12px;
+    }
+
     .data-table td {
-        padding: 10px 12px;
-        font-size: 0.82rem;
-        white-space: nowrap;
+        border: none;
+        border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+        position: relative;
+        padding: 12px 10px 12px 45%;
+        text-align: right;
+        min-height: 40px;
+        white-space: normal;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .data-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .data-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        width: 40%;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
     }
 
     /* Cards */
@@ -1623,25 +1661,6 @@ body {
 
     .card-body {
         padding: 12px 14px;
-    }
-
-    .table-wrap {
-        margin: 0 -14px;
-        padding: 0 14px;
-    }
-
-    .data-table {
-        min-width: 600px;
-    }
-
-    .data-table th,
-    .data-table td {
-        padding: 8px 10px;
-        font-size: 0.78rem;
-    }
-
-    .data-table th {
-        font-size: 0.68rem;
     }
 
     /* Modal full-screen on mobile */
