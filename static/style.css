@@ -660,16 +660,17 @@ body {
 }
 
 .product-cell-name {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--accent-primary);
-    font-size: 0.95rem;
-    letter-spacing: -0.2px;
+    font-size: 1rem;
+    letter-spacing: -0.3px;
+    text-shadow: 0 0 1px var(--accent-primary-glow);
 }
 
 .recent-item-name {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--accent-primary);
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 .empty-state {
