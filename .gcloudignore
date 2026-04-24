@@ -1,0 +1,19 @@
+.gcloudignore
+.git
+.gitignore
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore local env files
+.env
+venv/
+.venv/
+
+# Ignore frontend dependencies if in root (though they are in /frontend)
+node_modules/
+
+# Ensure Dockerfile is NOT ignored
+!Dockerfile
