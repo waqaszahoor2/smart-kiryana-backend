@@ -80,6 +80,8 @@ document.addEventListener("DOMContentLoaded", () => {
             updateThemeButtons();
         });
     });
+
+    setupAutoLogout();
     if (storedProfit) {
         const parsed = JSON.parse(storedProfit);
         if (parsed.date === today) {
@@ -96,7 +98,50 @@ async function handleLogout() {
         await fetch(`${API}/auth/logout`, { method: "POST", credentials: "include" });
     } catch {}
     localStorage.removeItem("smartstore_user");
+    localStorage.removeItem("smartstore_last_activity");
     window.location.href = "/";
+}
+
+// ─── Auto Logout (2 Hours) ───────────────────
+function setupAutoLogout() {
+    const TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+    const checkTimeout = () => {
+        const lastActivity = localStorage.getItem("smartstore_last_activity");
+        if (lastActivity && Date.now() - parseInt(lastActivity) > TIMEOUT_MS) {
+            handleLogout();
+        }
+    };
+
+    // Check immediately on load
+    checkTimeout();
+
+    // Check periodically
+    setInterval(checkTimeout, 60000);
+
+    // Update activity timestamp on user interaction
+    const updateActivity = () => {
+        localStorage.setItem("smartstore_last_activity", Date.now().toString());
+    };
+
+    if (!localStorage.getItem("smartstore_last_activity")) {
+        updateActivity();
+    }
+
+    let isThrottled = false;
+    const throttledUpdate = () => {
+        if (!isThrottled) {
+            updateActivity();
+            isThrottled = true;
+            setTimeout(() => isThrottled = false, 5000);
+        }
+    };
+
+    window.addEventListener("mousemove", throttledUpdate, { passive: true });
+    window.addEventListener("click", throttledUpdate, { passive: true });
+    window.addEventListener("keydown", throttledUpdate, { passive: true });
+    window.addEventListener("scroll", throttledUpdate, { passive: true });
+    window.addEventListener("touchstart", throttledUpdate, { passive: true });
 }
 
 
@@ -544,6 +589,10 @@ async function handleAddProduct(e) {
 
     if (data && data.success) {
         showToast(`✅ Product "${body.product_name}" added!`, "success");
+        
+        // Remember last selected owner for convenience
+        localStorage.setItem("smartstore_last_owner_id", body.owner_id.toString());
+
         closeModal("product-modal");
         document.getElementById("product-form").reset();
         loadDashboard();
@@ -587,6 +636,32 @@ async function loadOwnerOptions() {
         data.data.forEach((o) => {
             select.innerHTML += `<option value="${o.id}">${escapeHtml(o.shop_name)} — ${escapeHtml(o.owner_name)}</option>`;
         });
+
+        // Auto-select last used owner if available
+        const lastOwnerId = localStorage.getItem("smartstore_last_owner_id");
+        if (lastOwnerId && [...select.options].some(opt => opt.value === lastOwnerId)) {
+            select.value = lastOwnerId;
+        }
+    }
+}
+
+// ─── Search Products ─────────────────────────
+function searchProducts() {
+    const input = document.getElementById("search-product");
+    const filter = input.value.toLowerCase();
+    const tbody = document.getElementById("products-tbody");
+    if (!tbody) return;
+    const trs = tbody.getElementsByTagName("tr");
+
+    for (let i = 0; i < trs.length; i++) {
+        if (trs[i].querySelector(".empty-state")) continue;
+        
+        const textContent = trs[i].textContent || trs[i].innerText;
+        if (textContent.toLowerCase().indexOf(filter) > -1) {
+            trs[i].style.display = "";
+        } else {
+            trs[i].style.display = "none";
+        }
     }
 }
 

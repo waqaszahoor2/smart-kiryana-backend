@@ -222,7 +222,11 @@
 
         <!-- Products Page -->
         <section class="page" id="page-products">
-            <div class="page-actions">
+            <div class="page-actions" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div class="form-group" style="position:relative; flex:1; min-width:200px; margin-bottom:0;">
+                    <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); z-index:2; pointer-events:none;">🔍</span>
+                    <input type="text" id="search-product" onkeyup="searchProducts()" placeholder="Search by name, ID, or category..." style="padding-left:38px;">
+                </div>
                 <button class="btn btn-primary" id="btn-add-product" onclick="openModal('product-modal')">
                     <span>+ Add Product</span>
                 </button>
