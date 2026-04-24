@@ -24,8 +24,55 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
+        :root.light-mode {
+            --bg-dark: #f8fafc;
+            --glass: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(99, 102, 241, 0.2);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+        }
+        :root.light-mode .bg-gradient {
+            background: radial-gradient(circle at 0% 0%, #e0e7ff 0%, transparent 50%),
+                        radial-gradient(circle at 100% 100%, #c7d2fe 0%, transparent 50%),
+                        radial-gradient(circle at 50% 50%, #f1f5f9 0%, #e2e8f0 100%);
+        }
+        :root.light-mode input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+            border: 1px solid var(--glass-border);
+        }
+        :root.light-mode .tabs {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        :root.light-mode .btn-social {
+            background: rgba(0, 0, 0, 0.02);
+            color: #0f172a;
+        }
+
         html {
             font-size: 16px;
+            background: #020617;
+        }
+        :root.light-mode html {
+            background: #cbd5e1;
+        }
+
+        .theme-toggle-login {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         body {
@@ -668,6 +715,7 @@
     </style>
 </head>
 <body>
+    <button id="theme-toggle" class="theme-toggle-login">☀️</button>
     <div class="bg-gradient"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
@@ -747,6 +795,19 @@
 
     <script>
         const API = window.location.origin;
+
+        // Theme Setup
+        const savedTheme = localStorage.getItem('smartstore_theme');
+        if (savedTheme === 'light') {
+            document.documentElement.classList.add('light-mode');
+            document.getElementById('theme-toggle').textContent = '🌙';
+        }
+
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const isLight = document.documentElement.classList.toggle('light-mode');
+            localStorage.setItem('smartstore_theme', isLight ? 'light' : 'dark');
+            document.getElementById('theme-toggle').textContent = isLight ? '🌙' : '☀️';
+        });
 
         // Auto-redirect if already logged in
         document.addEventListener('DOMContentLoaded', async () => {

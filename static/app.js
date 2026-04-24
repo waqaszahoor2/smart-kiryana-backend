@@ -4,6 +4,11 @@
 
 const API = window.location.origin;
 
+// Theme setup (Run as early as possible to prevent flicker)
+if (localStorage.getItem("smartstore_theme") === "light") {
+    document.documentElement.classList.add("light-mode");
+}
+
 // ─── State ───────────────────────────────────
 let currentPage = "dashboard";
 let soldToday = 0;
@@ -21,9 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Display user info
     try {
         const user = JSON.parse(storedUser);
-        if (document.getElementById("user-name")) document.getElementById("user-name").textContent = user.name || "User";
-        if (document.getElementById("user-email")) document.getElementById("user-email").textContent = user.email || "—";
-        if (document.getElementById("user-avatar")) document.getElementById("user-avatar").textContent = (user.name || "U").charAt(0).toUpperCase();
+        document.querySelectorAll(".user-name").forEach(el => el.textContent = user.name || "User");
+        document.querySelectorAll(".user-email").forEach(el => el.textContent = user.email || "—");
+        document.querySelectorAll(".user-avatar").forEach(el => el.textContent = (user.name || "U").charAt(0).toUpperCase());
     } catch (e) {
         console.error("Failed to parse user data", e);
         localStorage.removeItem("smartstore_user");
@@ -32,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setupNavigation();
-    setupMenuToggle();
     updateClock();
     setInterval(updateClock, 1000);
     checkServerStatus();
@@ -52,6 +56,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Load daily profit data
     const storedProfit = localStorage.getItem("smartstore_profit");
+    if (storedProfit) {
+        const parsed = JSON.parse(storedProfit);
+        if (parsed.date === today) {
+            dailySales = { revenue: parsed.revenue, cost: parsed.cost };
+        } else {
+            localStorage.removeItem("smartstore_profit");
+        }
+    }
+
+    // Theme Setup
+    const updateThemeButtons = () => {
+        const isLight = document.documentElement.classList.contains("light-mode");
+        const topBtn = document.getElementById("theme-toggle");
+        if (topBtn) topBtn.textContent = isLight ? "🌙" : "☀️";
+    };
+    updateThemeButtons();
+
+    document.querySelectorAll("#theme-toggle, .btn-theme-sidebar").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const isLight = document.documentElement.classList.toggle("light-mode");
+            localStorage.setItem("smartstore_theme", isLight ? "light" : "dark");
+            updateThemeButtons();
+        });
+    });
     if (storedProfit) {
         const parsed = JSON.parse(storedProfit);
         if (parsed.date === today) {
@@ -95,7 +123,7 @@ function switchPage(page) {
     if (pageEl) pageEl.classList.add("active");
 
     // Update title
-    const titles = { dashboard: "Dashboard", owners: "Business Owners", products: "Products" };
+    const titles = { dashboard: "Dashboard", owners: "Business Owners", products: "Products", profile: "Menu" };
     document.getElementById("page-title").textContent = titles[page] || page;
 
     // Load data
@@ -103,27 +131,6 @@ function switchPage(page) {
     if (page === "owners") loadOwners();
     if (page === "products") loadProducts();
 
-    // Close mobile menu
-    document.getElementById("sidebar").classList.remove("open");
-    const overlay = document.getElementById("sidebar-overlay");
-    if (overlay) overlay.classList.remove("show");
-}
-
-// ─── Mobile Menu ─────────────────────────────
-function setupMenuToggle() {
-    document.getElementById("menu-toggle").addEventListener("click", () => {
-        document.getElementById("sidebar").classList.toggle("open");
-        const overlay = document.getElementById("sidebar-overlay");
-        if (overlay) overlay.classList.toggle("show");
-    });
-
-    const overlay = document.getElementById("sidebar-overlay");
-    if (overlay) {
-        overlay.addEventListener("click", () => {
-            document.getElementById("sidebar").classList.remove("open");
-            overlay.classList.remove("show");
-        });
-    }
 }
 
 // ─── Clock ───────────────────────────────────
@@ -139,18 +146,23 @@ function updateClock() {
 
 // ─── Server Status ───────────────────────────
 async function checkServerStatus() {
-    const badge = document.getElementById("server-status");
     try {
         const res = await fetch(`${API}/health`, { credentials: "include" });
         const data = await res.json();
-        if (data.success) {
-            badge.className = "status-badge online";
-            badge.querySelector("span:last-child").textContent = "Server Online";
-        }
+        updateServerStatusBadges(!!data.success);
     } catch {
-        badge.className = "status-badge offline";
-        badge.querySelector("span:last-child").textContent = "Server Offline";
+        updateServerStatusBadges(false);
     }
+}
+
+function updateServerStatusBadges(isOnline) {
+    document.querySelectorAll(".status-badge").forEach(badge => {
+        // Keep existing styles or classes but replace online/offline
+        badge.classList.remove("online", "offline");
+        badge.classList.add(isOnline ? "online" : "offline");
+        const textSpan = badge.querySelector(".server-status-text");
+        if (textSpan) textSpan.textContent = isOnline ? "Server Online" : "Server Offline";
+    });
 }
 
 // ─── API Helper ──────────────────────────────

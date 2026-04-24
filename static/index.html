@@ -14,9 +14,6 @@
     <div class="bg-orb bg-orb-2"></div>
     <div class="bg-orb bg-orb-3"></div>
 
-    <!-- Sidebar Overlay for Mobile -->
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
@@ -24,6 +21,52 @@
             <span class="brand-text">Smart Store</span>
         </div>
         <nav class="sidebar-nav">
+            <button class="nav-item active" data-page="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </button>
+            <button class="nav-item" data-page="owners">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Owners</span>
+            </button>
+            <button class="nav-item" data-page="products">
+                <span class="nav-icon">📦</span>
+                <span class="nav-label">Products</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">?</div>
+                <div class="user-details">
+                    <span class="user-name">User</span>
+                    <span class="user-email">—</span>
+                </div>
+            </div>
+            <button class="btn-theme-sidebar" style="width:100%; margin-bottom:10px; padding:10px; border-radius:8px; background:rgba(99,102,241,0.15); border:1px solid var(--border-color); color:var(--text-primary); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span>🌓</span>
+                <span>Toggle Theme</span>
+            </button>
+            <button class="btn-logout" onclick="handleLogout()">🚪 Sign Out</button>
+            <div class="status-badge" id="server-status-sidebar">
+                <span class="status-dot"></span>
+                <span class="server-status-text">Checking...</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="top-bar">
+            <h1 class="page-title" id="page-title">Dashboard</h1>
+            <div class="header-actions">
+                <button id="theme-toggle" class="btn-theme">☀️</button>
+                <span class="time-display" id="time-display"></span>
+            </div>
+        </header>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav" id="bottom-nav">
             <button class="nav-item active" data-page="dashboard" id="nav-dashboard">
                 <span class="nav-icon">📊</span>
                 <span class="nav-label">Dashboard</span>
@@ -36,33 +79,11 @@
                 <span class="nav-icon">📦</span>
                 <span class="nav-label">Products</span>
             </button>
+            <button class="nav-item" data-page="profile" id="nav-profile">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Menu</span>
+            </button>
         </nav>
-        <div class="sidebar-footer">
-            <div class="user-info" id="user-info">
-                <div class="user-avatar" id="user-avatar">?</div>
-                <div class="user-details">
-                    <span class="user-name" id="user-name">User</span>
-                    <span class="user-email" id="user-email">—</span>
-                </div>
-            </div>
-            <button class="btn-logout" id="btn-logout" onclick="handleLogout()">🚪 Sign Out</button>
-            <div class="status-badge" id="server-status">
-                <span class="status-dot"></span>
-                <span>Checking...</span>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Header -->
-        <header class="top-bar">
-            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">☰</button>
-            <h1 class="page-title" id="page-title">Dashboard</h1>
-            <div class="header-actions">
-                <span class="time-display" id="time-display"></span>
-            </div>
-        </header>
 
         <!-- Dashboard Page -->
         <section class="page active" id="page-dashboard">
@@ -233,6 +254,36 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Page -->
+        <section class="page" id="page-profile">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Account Settings</h3>
+                </div>
+                <div class="card-body" style="display:flex; flex-direction:column; gap:16px;">
+                    <div class="user-info" id="user-info" style="display:flex; align-items:center; gap:12px;">
+                        <div class="user-avatar" id="user-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--accent-primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;font-weight:bold;flex-shrink:0;">?</div>
+                        <div class="user-details" style="display:flex; flex-direction:column; overflow:hidden;">
+                            <strong class="user-name" id="user-name" style="font-size:1.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">User</strong>
+                            <div class="user-email" id="user-email" style="color:var(--text-muted); font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</div>
+                        </div>
+                    </div>
+                    <hr style="border:0; border-top:1px solid var(--border-color);">
+                    <div class="status-badge" style="display:flex; align-items:center; gap:8px;">
+                        <span class="status-dot" style="width:10px;height:10px;border-radius:50%;background:var(--text-muted); display:inline-block;"></span>
+                        <span class="server-status-text">Server Status: Checking...</span>
+                    </div>
+                    <hr style="border:0; border-top:1px solid var(--border-color);">
+                    <button class="btn-theme-sidebar" style="width:100%; padding:12px; border-radius:8px; background:rgba(99,102,241,0.15); border:1px solid var(--border-color); color:var(--text-primary); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <span>🌓</span>
+                        <span>Toggle Theme</span>
+                    </button>
+                    <hr style="border:0; border-top:1px solid var(--border-color);">
+                    <button class="btn btn-danger" id="btn-logout" onclick="handleLogout()" style="width:100%; justify-content:center; padding:12px;">🚪 Sign Out</button>
                 </div>
             </div>
         </section>
