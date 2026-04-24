@@ -13,17 +13,17 @@ steps:
   args:
   - 'run'
   - 'deploy'
-  - 'smart-kiryana'
+  - 'smart-kiryana-backend'
   - '--image'
-  - 'gcr.io/$PROJECT_ID/smart-kiryana'
+  - 'gcr.io/$PROJECT_ID/smart-kiryana-backend'
   - '--region'
-  - 'us-central1'
+  - 'europe-west1'
   - '--platform'
   - 'managed'
   - '--allow-unauthenticated'
 
 images:
-- 'gcr.io/$PROJECT_ID/smart-kiryana'
+- 'gcr.io/$PROJECT_ID/smart-kiryana-backend'
 
 options:
   logging: CLOUD_LOGGING_ONLY
