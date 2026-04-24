@@ -5,8 +5,25 @@
 const API = window.location.origin;
 
 // Theme setup (Run as early as possible to prevent flicker)
-if (localStorage.getItem("smartstore_theme") === "light") {
+const savedTheme = localStorage.getItem("smartstore_theme");
+const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+if (savedTheme === "light" || (!savedTheme && prefersLight)) {
     document.documentElement.classList.add("light-mode");
+}
+
+if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
+        if (!localStorage.getItem("smartstore_theme")) {
+            if (e.matches) {
+                document.documentElement.classList.add("light-mode");
+            } else {
+                document.documentElement.classList.remove("light-mode");
+            }
+            // Update buttons if the function exists
+            const topBtn = document.getElementById("theme-toggle");
+            if (topBtn) topBtn.textContent = e.matches ? "🌙" : "☀️";
+        }
+    });
 }
 
 // ─── State ───────────────────────────────────
