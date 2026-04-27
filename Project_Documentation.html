@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Kiryana - Project Documentation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #fff;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+            border-left: 5px solid #3498db;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #16a085;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #eee;
+            margin: 20px 0;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .feature-title {
+            font-weight: bold;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .step {
+            margin-bottom: 20px;
+        }
+        .step-number {
+            font-weight: bold;
+            color: #e67e22;
+            font-size: 1.1em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Smart Kiryana (Smart Store)</h1>
+    <p style="text-align: center; font-style: italic;">Complete Inventory Management Solution</p>
+
+    <hr>
+
+    <h2>1. Project Overview</h2>
+    <p><strong>Smart Kiryana</strong> is a comprehensive inventory management system designed for small business owners and retail stores. It provides a multi-platform solution (Web and Mobile) to track products, manage multiple shop owners, and ensure data safety through cloud backups.</p>
+
+    <h2>2. Key Features</h2>
+
+    <h3>🔐 User Authentication & Security</h3>
+    <ul class="feature-list">
+        <li class="feature-item">
+            <span class="feature-title">Multi-Provider Login</span>
+            Supports traditional Email/Password registration and Social Login (Google).
+        </li>
+        <li class="feature-item">
+            <span class="feature-title">Secure Storage</span>
+            Passwords are encrypted using modern hashing algorithms (PBKDF2) for maximum safety.
+        </li>
+        <li class="feature-item">
+            <span class="feature-title">Dual-Mode Auth</span>
+            Uses secure sessions for Web and Header-based (X-User-Id) authentication for Mobile.
+        </li>
+        <li class="feature-item">
+            <span class="feature-title">Auto-Logout</span>
+            Includes a 2-hour inactivity timer to protect sensitive store data from unauthorized access.
+        </li>
+    </ul>
+
+    <h3>📦 Inventory & Shop Management</h3>
+    <ul class="feature-list">
+        <li class="feature-item">
+            <span class="feature-title">Multi-Shop Support</span>
+            A single user can manage multiple business owners or shop locations independently.
+        </li>
+        <li class="feature-item">
+            <span class="feature-title">Comprehensive Product Tracking</span>
+            Tracks names, categories, units, sale prices, cost prices, and stock levels.
+        </li>
+        <li class="feature-item">
+            <span class="feature-title">Real-time Dashboard</span>
+            Provides instant summaries of total products, inventory value, and stock status.
+        </li>
+    </ul>
+
+    <h3>☁️ Cloud Integration & Experience</h3>
+    <ul class="feature-list">
+        <li class="feature-item">
+            <span class="feature-title">Google Drive Backup</span>
+            Automated synchronization of inventory data to a dedicated Google Drive folder.
+        </li>
+        <li class="feature-item">
+            <span class="feature-title">Dynamic Theming</span>
+            Automatically detects and applies the user's system theme (Light or Dark mode).
+        </li>
+        <li class="feature-item">
+            <span class="feature-title">Mobile Responsive</span>
+            Optimized interface that works seamlessly across desktops, tablets, and smartphones.
+        </li>
+    </ul>
+
+    <h2>3. How the App Works (Workflow)</h2>
+
+    <div class="step">
+        <span class="step-number">Step 1: Onboarding</span>
+        <p>The user registers or logs in. The system identifies the user and loads their specific settings, including their preferred theme.</p>
+    </div>
+
+    <div class="step">
+        <span class="step-number">Step 2: Business Setup</span>
+        <p>The user adds their shop details under the "Owners" section. Multiple shops can be created for different branches.</p>
+    </div>
+
+    <div class="step">
+        <span class="step-number">Step 3: Inventory Entry</span>
+        <p>Products are added with cost and sale prices. The system automatically calculates the total business value and inventory health.</p>
+    </div>
+
+    <div class="step">
+        <span class="step-number">Step 4: Cloud Sync</span>
+        <p>Whenever data changes, it can be synced to Google Drive, ensuring that the business record is never lost.</p>
+    </div>
+
+    <div class="step">
+        <span class="step-number">Step 5: Daily Monitoring</span>
+        <p>Owners use the real-time search and stock indicators to manage daily sales and reordering tasks efficiently.</p>
+    </div>
+
+    <h2>4. Technical Stack</h2>
+    <table>
+        <tr>
+            <th>Component</th>
+            <th>Technology</th>
+        </tr>
+        <tr>
+            <td>Backend</td>
+            <td>Python (Flask)</td>
+        </tr>
+        <tr>
+            <td>Database</td>
+            <td>PostgreSQL / MySQL</td>
+        </tr>
+        <tr>
+            <td>Mobile App</td>
+            <td>React Native (Expo)</td>
+        </tr>
+        <tr>
+            <td>Web Frontend</td>
+            <td>HTML5, CSS3, JavaScript</td>
+        </tr>
+        <tr>
+            <td>Cloud Services</td>
+            <td>Google Cloud, Vercel, Google Drive API</td>
+        </tr>
+    </table>
+
+</body>
+</html>

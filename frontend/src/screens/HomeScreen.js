@@ -17,11 +17,34 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { signOut } from "firebase/auth";
+import { auth } from "../api/firebase";
 import COLORS from "../theme/colors";
 
 const { width } = Dimensions.get("window");
 
 export default function HomeScreen({ navigation, onRestartApp }) {
+
+    const handleLogout = () => {
+        Alert.alert(
+            "🚪 Logout",
+            "Are you sure you want to logout?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await signOut(auth);
+                        } catch (error) {
+                            Alert.alert("Error", "Failed to logout.");
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const handleRestart = () => {
         Alert.alert(
@@ -210,6 +233,18 @@ export default function HomeScreen({ navigation, onRestartApp }) {
                             </View>
                             <Text style={styles.actionArrow}>→</Text>
                         </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Logout Button */}
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={handleLogout}
+                        style={styles.restartTouchable}
+                    >
+                        <View style={[styles.restartBtn, { borderColor: COLORS.error }]}>
+                            <Text style={styles.restartIcon}>🚪</Text>
+                            <Text style={[styles.restartText, { color: COLORS.error }]}>Logout</Text>
+                        </View>
                     </TouchableOpacity>
 
                     {/* Restart Button */}
