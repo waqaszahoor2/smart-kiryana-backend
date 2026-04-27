@@ -9,11 +9,6 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "firebase": "^10.0.0",
-    "expo-auth-session": "~6.0.0",
-    "expo-crypto": "~14.0.0",
-    "expo-web-browser": "~16.0.0",
-    "react-native-gesture-handler": "~2.20.2",
     "@expo/metro-runtime": "~6.1.2",
     "@react-native-async-storage/async-storage": "^3.0.2",
     "@react-navigation/native": "^7.1.28",

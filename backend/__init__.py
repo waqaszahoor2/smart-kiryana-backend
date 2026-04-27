@@ -8,7 +8,11 @@ import os
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from .config import Config
-from .routes.data_routes import data_bp
+from .db import init_db
+from .routes.owner_routes import owner_bp
+from .routes.product_routes import product_bp
+from .routes.auth_routes import auth_bp
+
 
 def create_app():
     """
@@ -23,8 +27,14 @@ def create_app():
     # Enable CORS for all routes (needed for frontend)
     CORS(app)
 
+    # Initialize database tables
+    with app.app_context():
+        init_db()
+
     # Register route blueprints
-    app.register_blueprint(data_bp)
+    app.register_blueprint(owner_bp)
+    app.register_blueprint(product_bp)
+    app.register_blueprint(auth_bp)
 
     # Health-check endpoint (API)
     @app.route("/health")
@@ -34,17 +44,16 @@ def create_app():
             "message": "Smart Store Backend Running"
         }), 200
 
-    # Global Error Handler
-    @app.errorhandler(Exception)
-    def handle_exception(e):
-        # Log the error
-        import logging
-        logging.error(f"Unhandled Exception: {str(e)}", exc_info=True)
-        
-        return jsonify({
-            "success": False,
-            "message": "An internal server error occurred",
-            "error": str(e)
-        }), 500
+    # Static file serving (for web dashboard)
+    @app.route("/")
+    def serve_index():
+        return send_from_directory("../static", "index.html")
+
+    @app.route("/<path:path>")
+    def serve_static(path):
+        # Serve from static folder if file exists, otherwise serve index.html (for SPA)
+        if os.path.exists(os.path.join(app.root_path, "../static", path)):
+            return send_from_directory("../static", path)
+        return send_from_directory("../static", "index.html")
 
     return app

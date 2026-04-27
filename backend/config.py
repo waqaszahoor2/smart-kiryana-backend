@@ -1,16 +1,30 @@
+"""
+Smart Store - Configuration
+=============================
+Centralized configuration for database and application settings.
+Uses PostgreSQL via DATABASE_URL environment variable (Vercel / Cloud).
+Falls back to local MySQL for development when DATABASE_URL is not set.
+"""
+
 import os
 
+
 class Config:
-    """Base configuration for Cloud Run and Vercel."""
-    
+    """Base configuration."""
+
     # Flask settings
     DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
-    SECRET_KEY = os.environ.get("SECRET_KEY", "smart-store-fallback-key")
-    
-    # Firebase configuration
-    FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID")
-    FIREBASE_CLIENT_EMAIL = os.environ.get("FIREBASE_CLIENT_EMAIL")
-    FIREBASE_PRIVATE_KEY = os.environ.get("FIREBASE_PRIVATE_KEY")
-    
-    # Optional: Path to service account file for local testing
-    FIREBASE_SERVICE_ACCOUNT_FILE = os.environ.get("FIREBASE_SERVICE_ACCOUNT_FILE", "firebase-service-account.json")
+    SECRET_KEY = os.environ.get("SECRET_KEY", "smart-store-secret-key")
+
+    # Database URL (PostgreSQL) — set this in Vercel environment variables
+    # Example: postgres://user:password@host:5432/dbname
+    DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL", "")
+
+    # Database mode: auto-detect from DATABASE_URL presence
+    DB_MODE = "postgresql" if DATABASE_URL else "mysql"
+
+    # MySQL Database settings (local development fallback)
+    DB_HOST = os.environ.get("DB_HOST", "localhost")
+    DB_USER = os.environ.get("DB_USER", "root")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD", "Waqas@2262")
+    DB_NAME = os.environ.get("DB_NAME", "smart_kiryana")
