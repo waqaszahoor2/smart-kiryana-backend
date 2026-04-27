@@ -4,11 +4,23 @@ Smart Store - Authentication Routes
 Handles user registration, login, logout, and session management.
 """
 
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, redirect
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..db import get_connection, get_dict_cursor
+import os
+import json
+import requests
 
 auth_bp = Blueprint("auth", __name__)
+
+# Google OAuth Configuration
+SCOPES = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'openid',
+    'https://www.googleapis.com/auth/drive.file'
+]
+CLIENT_SECRETS_FILE = os.environ.get("GOOGLE_CLIENT_SECRETS_FILE", "client_secret.json")
 
 
 @auth_bp.route("/auth/register", methods=["POST"])
@@ -213,3 +225,152 @@ def logout():
     """Log out the current user."""
     session.clear()
     return jsonify({"success": True, "message": "Logged out."}), 200
+
+
+@auth_bp.route("/auth/google/login", methods=["GET"])
+def google_login():
+    """Initiate Google OAuth Flow via HTTP redirect."""
+    try:
+        with open(CLIENT_SECRETS_FILE, "r") as f:
+            secrets = json.load(f)
+            web = secrets.get("web", {})
+            client_id = web.get("client_id")
+            
+        if not client_id:
+            return jsonify({"success": False, "message": "Invalid client secrets format"}), 500
+
+        redirect_uri = request.host_url.rstrip('/') + "/auth/google/callback"
+        auth_url = (
+            f"https://accounts.google.com/o/oauth2/v2/auth"
+            f"?client_id={client_id}"
+            f"&redirect_uri={redirect_uri}"
+            f"&response_type=code"
+            f"&scope={' '.join(SCOPES)}"
+            f"&access_type=offline"
+            f"&prompt=consent"
+        )
+        return redirect(auth_url)
+    except FileNotFoundError:
+        return jsonify({"success": False, "message": "Google Client Secrets file not found. Please setup GCP and place client_secret.json in the project root."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error initiating Google Login: {str(e)}"}), 500
+
+
+@auth_bp.route("/auth/google/callback", methods=["GET"])
+def google_callback():
+    """Handle Google OAuth Callback via HTTP requests."""
+    try:
+        code = request.args.get("code")
+        if not code:
+            return jsonify({"success": False, "message": "No code provided"}), 400
+
+        with open(CLIENT_SECRETS_FILE, "r") as f:
+            secrets = json.load(f)
+            web = secrets.get("web", {})
+            client_id = web.get("client_id")
+            client_secret = web.get("client_secret")
+
+        redirect_uri = request.host_url.rstrip('/') + "/auth/google/callback"
+        
+        # Exchange code for tokens
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code"
+        }
+        token_res = requests.post(token_url, data=token_data)
+        
+        if token_res.status_code != 200:
+            return jsonify({"success": False, "message": "Failed to fetch tokens"}), 500
+            
+        token_json = token_res.json()
+        access_token = token_json.get("access_token")
+        refresh_token = token_json.get("refresh_token")
+        
+        # Get user info
+        user_info_service = requests.get(
+            f"https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token={access_token}"
+        )
+        user_info = user_info_service.json()
+        
+        email = user_info.get("email", "").lower()
+        name = user_info.get("name", "")
+        provider_id = user_info.get("id", "")
+        
+        creds_dict = {
+            'token': access_token,
+            'refresh_token': refresh_token,
+            'client_id': client_id,
+            'client_secret': client_secret,
+        }
+        creds_json_str = json.dumps(creds_dict)
+        
+        connection = get_connection()
+        cursor = get_dict_cursor(connection)
+
+        # Check if user exists
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user_row = cursor.fetchone()
+
+        if user_row:
+            user = dict(user_row)
+            # Update credentials
+            # Only update refresh_token if it was provided (Google sometimes only sends it on first login)
+            if refresh_token:
+                cursor.execute(
+                    "UPDATE users SET provider = %s, provider_id = %s, google_credentials = %s WHERE id = %s", 
+                    ("google", provider_id, creds_json_str, user["id"])
+                )
+            else:
+                # Need to read old creds and keep refresh token
+                old_creds = json.loads(user.get("google_credentials", "{}"))
+                creds_dict['refresh_token'] = old_creds.get('refresh_token')
+                cursor.execute(
+                    "UPDATE users SET provider = %s, provider_id = %s, google_credentials = %s WHERE id = %s", 
+                    ("google", provider_id, json.dumps(creds_dict), user["id"])
+                )
+            connection.commit()
+            user["provider"] = "google"
+        else:
+            # Auto-register
+            cursor.execute(
+                "INSERT INTO users (name, email, password_hash, provider, provider_id, google_credentials) VALUES (%s, %s, %s, %s, %s, %s)",
+                (name, email, "", "google", provider_id, creds_json_str),
+            )
+            connection.commit()
+            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+            user = dict(cursor.fetchone())
+
+        cursor.close()
+        connection.close()
+
+        # Set session
+        session["user_id"] = user["id"]
+        session["user_email"] = user["email"]
+        session["user_name"] = user["name"]
+
+        # Redirect to frontend with a success flag
+        html_redirect = f\"\"\"
+        <html>
+            <body>
+                <script>
+                    localStorage.setItem('smartstore_user', JSON.stringify({{
+                        id: {user['id']},
+                        name: "{user['name']}",
+                        email: "{user['email']}",
+                        provider: "google"
+                    }}));
+                    localStorage.setItem('smartstore_last_activity', Date.now().toString());
+                    window.location.href = '/dashboard';
+                </script>
+            </body>
+        </html>
+        \"\"\"
+        return html_redirect
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error in Google callback: {str(e)}"}), 500
+
