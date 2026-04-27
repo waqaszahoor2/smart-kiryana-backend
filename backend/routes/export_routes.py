@@ -32,6 +32,7 @@ def export_excel():
                 bo.shop_name, 
                 bo.owner_name, 
                 bo.phone as owner_phone,
+                p.id,
                 p.display_id,
                 p.product_name, 
                 p.category, 
@@ -59,7 +60,7 @@ def export_excel():
         # Define Headers
         headers = [
             "Shop Name", "Owner Name", "Owner Phone", 
-            "Product ID", "Product Name", "Category", 
+            "Sequential ID", "System ID (Permanent)", "Product Name", "Category", 
             "Selling Price (Rs)", "Cost Price (Rs)", "Quantity", "Unit", "In Stock"
         ]
         ws.append(headers)
@@ -81,6 +82,7 @@ def export_excel():
                 row.get("owner_name"),
                 row.get("owner_phone"),
                 row.get("display_id") if row.get("product_name") else "",
+                row.get("id") if row.get("product_name") else "",
                 row.get("product_name") or "— No Products —",
                 row.get("category") or "",
                 row.get("price") if row.get("product_name") else "",

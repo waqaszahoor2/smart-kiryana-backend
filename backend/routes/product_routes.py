@@ -196,6 +196,9 @@ def update_product(product_id):
         cursor.close()
         connection.close()
 
+        # Re-index display IDs in case the product name was changed (affecting sort order)
+        recalculate_display_ids(owner_id)
+
         return jsonify({"success": True, "message": "Product updated successfully."}), 200
 
     except Exception as e:
