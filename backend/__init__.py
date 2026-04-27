@@ -12,6 +12,7 @@ from .db import init_db
 from .routes.owner_routes import owner_bp
 from .routes.product_routes import product_bp
 from .routes.auth_routes import auth_bp
+from .routes.export_routes import export_bp
 
 
 def create_app():
@@ -35,6 +36,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(owner_bp)
     app.register_blueprint(product_bp)
+    app.register_blueprint(export_bp)
 
     # Serve the login page directly at root
     @app.route("/")

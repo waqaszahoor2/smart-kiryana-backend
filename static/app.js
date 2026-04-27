@@ -743,3 +743,40 @@ function updateProfitBoard() {
 
     document.getElementById("profit-margin").textContent = `${margin}% profit margin`;
 }
+
+// ─── Data Export ─────────────────────────────
+async function downloadData() {
+    const btn = document.getElementById("btn-download");
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span><span>Generating CSV...</span>';
+    
+    try {
+        // We use window.location.href for simple downloads that return a file
+        // but since we might need credentials, fetch is safer.
+        const res = await fetch(`${API}/export/csv`, { credentials: "include" });
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = `smart_store_inventory_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showToast("✅ Data downloaded successfully!", "success");
+    } catch (err) {
+        console.error("Download failed:", err);
+        showToast("❌ Failed to download data.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
