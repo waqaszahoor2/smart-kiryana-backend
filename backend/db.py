@@ -209,6 +209,11 @@ def init_db():
                                        WHERE table_name='users' AND column_name='google_credentials') THEN
                             ALTER TABLE users ADD COLUMN google_credentials TEXT;
                         END IF;
+
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                       WHERE table_name='products' AND column_name='display_id') THEN
+                            ALTER TABLE products ADD COLUMN display_id INT DEFAULT 0;
+                        END IF;
                     END $$;
                 """)
             else:
@@ -220,6 +225,11 @@ def init_db():
                 cursor.execute("SHOW COLUMNS FROM users LIKE 'google_credentials'")
                 if not cursor.fetchone():
                     cursor.execute("ALTER TABLE users ADD COLUMN google_credentials TEXT")
+
+                cursor.execute("SHOW COLUMNS FROM products LIKE 'display_id'")
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE products ADD COLUMN display_id INT DEFAULT 0")
+
         except Exception as migration_error:
             print(f"[DB MIGRATION WARNING] Could not add columns: {migration_error}")
 
@@ -231,3 +241,35 @@ def init_db():
     except Exception as e:
         print(f"[DB ERROR] Init failed: {e}")
         print("[DB WARNING] Server will start but DB operations may fail.")
+
+
+def recalculate_display_ids(owner_id):
+    """
+    Re-index the display_id for all products of a specific owner.
+    Sorts by product_name (A-Z) and updates display_id to be sequential (1, 2, 3...).
+    """
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        # Fetch all products for this owner, sorted by product name
+        cursor.execute(
+            "SELECT id FROM products WHERE owner_id = %s ORDER BY product_name ASC",
+            (owner_id,)
+        )
+        products = cursor.fetchall()
+
+        # Update each product with a new sequential display_id
+        for index, row in enumerate(products, start=1):
+            cursor.execute(
+                "UPDATE products SET display_id = %s WHERE id = %s",
+                (index, row[0])
+            )
+
+        connection.commit()
+        cursor.close()
+        connection.close()
+        return True
+    except Exception as e:
+        print(f"[DB ERROR] Recalculate display_id failed: {e}")
+        return False

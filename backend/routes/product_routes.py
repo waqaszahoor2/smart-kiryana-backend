@@ -5,7 +5,7 @@ REST API endpoints for managing store products / inventory.
 """
 
 from flask import Blueprint, request, jsonify, session
-from ..db import get_connection, get_dict_cursor, get_last_id
+from ..db import get_connection, get_dict_cursor, get_last_id, recalculate_display_ids
 
 product_bp = Blueprint("product", __name__)
 
@@ -60,6 +60,9 @@ def add_product():
         cursor.close()
         connection.close()
 
+        # Re-index display IDs to keep them sequential and sorted by name
+        recalculate_display_ids(owner_id)
+
         return jsonify({
             "success": True,
             "message": "Product added successfully.",
@@ -103,7 +106,7 @@ def get_products():
             query += " AND p.category = %s"
             params.append(category)
 
-        query += " ORDER BY p.id ASC"
+        query += " ORDER BY p.display_id ASC, p.product_name ASC"
 
         cursor.execute(query, params)
         products = cursor.fetchall()
@@ -223,11 +226,20 @@ def delete_product(product_id):
             connection.close()
             return jsonify({"success": False, "message": "Product not found or access denied."}), 404
 
+        # Get owner_id before deleting to trigger re-index
+        cursor.execute("SELECT owner_id FROM products WHERE id = %s", (product_id,))
+        row = cursor.fetchone()
+        owner_id = row[0] if row else None
+
         cursor.execute("DELETE FROM products WHERE id = %s", (product_id,))
         connection.commit()
 
         cursor.close()
         connection.close()
+
+        # Re-index display IDs for this owner after deletion
+        if owner_id:
+            recalculate_display_ids(owner_id)
 
         return jsonify({"success": True, "message": "Product deleted successfully."}), 200
 
