@@ -72,7 +72,10 @@ def create_app():
         }), 500
 
     # Initialize database tables
-    with app.app_context():
-        init_db()
+    try:
+        with app.app_context():
+            init_db()
+    except Exception as e:
+        app.logger.error(f"Failed to initialize database: {e}")
 
     return app
