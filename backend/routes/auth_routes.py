@@ -353,7 +353,7 @@ def google_callback():
         session["user_name"] = user["name"]
 
         # Redirect to frontend with a success flag
-        html_redirect = f\"\"\"
+        html_redirect = f"""
         <html>
             <body>
                 <script>
@@ -368,7 +368,7 @@ def google_callback():
                 </script>
             </body>
         </html>
-        \"\"\"
+        """
         return html_redirect
 
     except Exception as e:
