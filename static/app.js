@@ -750,12 +750,11 @@ async function downloadData() {
     const originalText = btn.innerHTML;
     
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span><span>Generating CSV...</span>';
+    btn.innerHTML = '<span>⏳</span><span>Generating Excel...</span>';
     
     try {
-        // We use window.location.href for simple downloads that return a file
-        // but since we might need credentials, fetch is safer.
-        const res = await fetch(`${API}/export/csv`, { credentials: "include" });
+        const today = new Date().toISOString().split('T')[0];
+        const res = await fetch(`${API}/export/excel?date=${today}`, { credentials: "include" });
         
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
@@ -766,12 +765,12 @@ async function downloadData() {
         const a = document.createElement("a");
         a.style.display = "none";
         a.href = url;
-        a.download = `smart_store_inventory_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `smart_store_inventory_${today}.xlsx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         
-        showToast("✅ Data downloaded successfully!", "success");
+        showToast("✅ Excel file downloaded!", "success");
     } catch (err) {
         console.error("Download failed:", err);
         showToast("❌ Failed to download data.", "error");

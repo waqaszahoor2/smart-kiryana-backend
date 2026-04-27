@@ -5,3 +5,4 @@ mysql-connector-python
 werkzeug==3.1.6
 gunicorn
 requests
+openpyxl
