@@ -1,13 +1,16 @@
 import os
 
 class Config:
-    """Base configuration for Cloud Run."""
+    """Base configuration for Cloud Run and Vercel."""
     
     # Flask settings
     DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
-    SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(24).hex())
+    SECRET_KEY = os.environ.get("SECRET_KEY", "smart-store-fallback-key")
     
     # Firebase configuration
-    # FIREBASE_PROJECT_ID will be automatically used by google-cloud-firestore
-    # if not explicitly provided, it uses the default project where Cloud Run is hosted.
     FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID")
+    FIREBASE_CLIENT_EMAIL = os.environ.get("FIREBASE_CLIENT_EMAIL")
+    FIREBASE_PRIVATE_KEY = os.environ.get("FIREBASE_PRIVATE_KEY")
+    
+    # Optional: Path to service account file for local testing
+    FIREBASE_SERVICE_ACCOUNT_FILE = os.environ.get("FIREBASE_SERVICE_ACCOUNT_FILE", "firebase-service-account.json")
