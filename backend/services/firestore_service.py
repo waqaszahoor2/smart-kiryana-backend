@@ -1,9 +1,32 @@
 from google.cloud import firestore
+import logging
 from ..config import Config
 
-# Initialize Firestore client
-# Use project ID from config if available
-db = firestore.Client(project=Config.FIREBASE_PROJECT_ID) if Config.FIREBASE_PROJECT_ID else firestore.Client()
+logger = logging.getLogger(__name__)
+
+# Global variable to cache the client
+_db_client = None
+
+def get_db():
+    """
+    Returns a cached Firestore client instance.
+    Initializes lazily to prevent module-level import crashes.
+    """
+    global _db_client
+    if _db_client is None:
+        try:
+            logger.info("[FIRESTORE] Initializing Firestore client...")
+            if Config.FIREBASE_PROJECT_ID:
+                _db_client = firestore.Client(project=Config.FIREBASE_PROJECT_ID)
+            else:
+                _db_client = firestore.Client()
+            logger.info("[FIRESTORE] Client initialized successfully.")
+        except Exception as e:
+            logger.error(f"[FIRESTORE ERROR] Client initialization failed: {str(e)}")
+            # On Vercel, we might want to raise here so the health check or route fails gracefully
+            # but with the global error handler it will be caught.
+            raise e
+    return _db_client
 
 class FirestoreService:
     @staticmethod
@@ -11,6 +34,7 @@ class FirestoreService:
         """
         Returns the reference to the user's data collection: users/{uid}/data
         """
+        db = get_db()
         return db.collection('users').document(uid).collection('data')
 
     @staticmethod

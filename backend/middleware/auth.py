@@ -7,8 +7,8 @@ import logging
 from ..config import Config
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def initialize_firebase():
     """
