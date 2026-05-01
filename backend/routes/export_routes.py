@@ -80,7 +80,6 @@ def export_excel():
             ws.append([
                 row.get("shop_name"),
                 row.get("owner_name"),
-                row.get("owner_phone"),
                 row.get("display_id") if row.get("product_name") else "",
                 row.get("id") if row.get("product_name") else "",
                 row.get("product_name") or "— No Products —",

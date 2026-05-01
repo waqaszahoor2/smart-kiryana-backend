@@ -55,10 +55,14 @@ def register():
         cursor = get_dict_cursor(connection)
 
         # Check if email already exists
-        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
-        if cursor.fetchone():
+        cursor.execute("SELECT id, provider FROM users WHERE email = %s", (email,))
+        existing_user = cursor.fetchone()
+        if existing_user:
             cursor.close()
             connection.close()
+            provider = existing_user.get("provider", "email")
+            if provider == "google":
+                return jsonify({"success": False, "message": "This email is registered via Google. Please log in using Google."}), 409
             return jsonify({"success": False, "message": "Email already registered."}), 409
 
         # Insert new user
@@ -119,6 +123,9 @@ def login():
         user = dict(user_row)
 
         # Check password
+        if user.get("provider") == "google" and not user.get("password_hash"):
+            return jsonify({"success": False, "message": "This account was created with Google. Please sign in with Google."}), 401
+
         if not check_password_hash(user["password_hash"], password):
             return jsonify({"success": False, "message": "Incorrect password."}), 401
 
