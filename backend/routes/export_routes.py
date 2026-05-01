@@ -59,7 +59,7 @@ def export_excel():
 
         # Define Headers
         headers = [
-            "Shop Name", "Owner Name", "Owner Phone", 
+            "Shop Name", "Owner Name",
             "Sequential ID", "System ID (Permanent)", "Product Name", "Category", 
             "Selling Price (Rs)", "Cost Price (Rs)", "Quantity", "Unit", "In Stock"
         ]
